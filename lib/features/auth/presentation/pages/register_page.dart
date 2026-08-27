@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/widgets/brand_header.dart';
 import '../providers/auth_controller.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -15,6 +16,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
+  bool _sifreGizli = true;
 
   @override
   void dispose() {
@@ -51,56 +54,84 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kayıt Ol')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'E-posta'),
-                validator: (value) => (value == null || !value.contains('@'))
-                    ? 'Geçerli bir e-posta gir'
-                    : null,
+      appBar: AppBar(
+        // Başlık yok: marka başlığı zaten gövdede duruyor, tekrar olmasın.
+        backgroundColor: Colors.transparent,
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          children: [
+            const BrandHeader(subtitle: 'Hesabını oluştur, hemen başla'),
+            const SizedBox(height: 36),
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'E-posta',
+                      prefixIcon: Icon(Icons.mail_outline_rounded),
+                    ),
+                    validator: (value) => (value == null || !value.contains('@'))
+                        ? 'Geçerli bir e-posta gir'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _sifreGizli,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: 'Şifre',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(_sifreGizli
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined),
+                        tooltip: _sifreGizli ? 'Şifreyi göster' : 'Şifreyi gizle',
+                        onPressed: () => setState(() => _sifreGizli = !_sifreGizli),
+                      ),
+                    ),
+                    validator: (value) => (value == null || value.length < 6)
+                        ? 'En az 6 karakter olmalı'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _confirmController,
+                    obscureText: _sifreGizli,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submit(),
+                    decoration: const InputDecoration(
+                      labelText: 'Şifre (tekrar)',
+                      prefixIcon: Icon(Icons.lock_outline_rounded),
+                    ),
+                    // Bu alan sadece diğer alanla eşleşip eşleşmediğine bakar,
+                    // Firebase'e hiç gitmez — kullanıcıya anında geri bildirim verir.
+                    validator: (value) => (value != _passwordController.text)
+                        ? 'Şifreler eşleşmiyor'
+                        : null,
+                  ),
+                  const SizedBox(height: 28),
+                  FilledButton(
+                    onPressed: authState.isLoading ? null : _submit,
+                    child: authState.isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Kayıt Ol'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Şifre'),
-                validator: (value) => (value == null || value.length < 6)
-                    ? 'En az 6 karakter olmalı'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _confirmController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Şifre (tekrar)'),
-                // Bu alan sadece diğer alanla eşleşip eşleşmediğine bakar,
-                // Firebase'e hiç gitmez — kullanıcıya anında geri bildirim verir.
-                validator: (value) => (value != _passwordController.text)
-                    ? 'Şifreler eşleşmiyor'
-                    : null,
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: authState.isLoading ? null : _submit,
-                child: authState.isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Kayıt Ol'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

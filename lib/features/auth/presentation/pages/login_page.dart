@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/widgets/brand_header.dart';
 import '../providers/auth_controller.dart';
 import 'register_page.dart';
 
@@ -19,6 +20,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _passwordController = TextEditingController();
   // Form'un doğrulama (validation) durumunu yönetmek için anahtar.
   final _formKey = GlobalKey<FormState>();
+
+  // Şifre alanı varsayılan olarak gizli; göz ikonuyla açılıp kapanır.
+  bool _sifreGizli = true;
 
   @override
   void dispose() {
@@ -58,56 +62,82 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Giriş Yap')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'E-posta'),
-                validator: (value) => (value == null || !value.contains('@'))
-                    ? 'Geçerli bir e-posta gir'
-                    : null,
+      // ListView (Column değil): klavye açılınca içerik yukarı kayabilsin,
+      // küçük ekranlarda taşma hatası vermesin.
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+          children: [
+            const SizedBox(height: 20),
+            const BrandHeader(subtitle: 'Geri dönüştür, puan kazan'),
+            const SizedBox(height: 40),
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'E-posta',
+                      prefixIcon: Icon(Icons.mail_outline_rounded),
+                    ),
+                    validator: (value) => (value == null || !value.contains('@'))
+                        ? 'Geçerli bir e-posta gir'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _sifreGizli,
+                    textInputAction: TextInputAction.done,
+                    // Klavyedeki "bitti" tuşu da formu göndersin.
+                    onFieldSubmitted: (_) => _submit(),
+                    decoration: InputDecoration(
+                      labelText: 'Şifre',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(_sifreGizli
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined),
+                        tooltip: _sifreGizli ? 'Şifreyi göster' : 'Şifreyi gizle',
+                        onPressed: () => setState(() => _sifreGizli = !_sifreGizli),
+                      ),
+                    ),
+                    validator: (value) => (value == null || value.length < 6)
+                        ? 'En az 6 karakter olmalı'
+                        : null,
+                  ),
+                  const SizedBox(height: 28),
+                  // authState.isLoading true iken butonu devre dışı bırakıp
+                  // yerine küçük bir dönen çember gösteriyoruz.
+                  FilledButton(
+                    onPressed: authState.isLoading ? null : _submit,
+                    child: authState.isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Giriş Yap'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: authState.isLoading
+                        ? null
+                        : () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const RegisterPage()),
+                            );
+                          },
+                    child: const Text('Hesabın yok mu? Kayıt ol'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Şifre'),
-                validator: (value) => (value == null || value.length < 6)
-                    ? 'En az 6 karakter olmalı'
-                    : null,
-              ),
-              const SizedBox(height: 24),
-              // authState.isLoading true iken butonu devre dışı bırakıp
-              // yerine küçük bir dönen çember gösteriyoruz.
-              FilledButton(
-                onPressed: authState.isLoading ? null : _submit,
-                child: authState.isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Giriş Yap'),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const RegisterPage()),
-                  );
-                },
-                child: const Text('Hesabın yok mu? Kayıt ol'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

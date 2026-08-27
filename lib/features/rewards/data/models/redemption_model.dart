@@ -33,8 +33,12 @@ class RedemptionModel extends Redemption {
     return {
       'uid': uid,
       'rewardId': reward.id,
-      // Ödülün o anki adını KOPYALIYORUZ (bkz. Redemption.rewardTitle yorumu).
+      // Ödülün o anki adını ve fiyatını KOPYALIYORUZ (bkz. Redemption
+      // .rewardTitle yorumu). Fiyat, puan geçmişinde "ne kadar harcandı"
+      // gösterebilmek için de gerekli — ödülün fiyatı sonradan değişse
+      // bile geçmiş kayıt doğru kalır.
       'rewardTitle': reward.title,
+      'costPoints': reward.costPoints,
       'code': code,
       'status': RedemptionStatus.active.id,
       'createdAt': FieldValue.serverTimestamp(),

@@ -5,8 +5,10 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/datasources/wallet_remote_datasource.dart';
 import '../../data/repositories/wallet_repository_impl.dart';
 import '../../domain/entities/points_balance.dart';
+import '../../domain/entities/wallet_transaction.dart';
 import '../../domain/repositories/wallet_repository.dart';
 import '../../domain/usecases/watch_points_balance.dart';
+import '../../domain/usecases/watch_transactions.dart';
 
 final walletRemoteDataSourceProvider = Provider<WalletRemoteDataSource>((ref) {
   return WalletRemoteDataSource(ref.watch(firestoreProvider));
@@ -33,4 +35,15 @@ final pointsBalanceProvider = StreamProvider<PointsBalance>((ref) {
     return Stream.value(const PointsBalance(points: 0));
   }
   return ref.watch(watchPointsBalanceProvider).call(user.uid);
+});
+
+final watchTransactionsProvider = Provider(
+  (ref) => WatchTransactions(ref.watch(walletRepositoryProvider)),
+);
+
+/// Giriş yapmış kullanıcının puan geçmişini (kazanç + harcama) canlı yayınlar.
+final transactionsProvider = StreamProvider<List<WalletTransaction>>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(const []);
+  return ref.watch(watchTransactionsProvider).call(user.uid);
 });

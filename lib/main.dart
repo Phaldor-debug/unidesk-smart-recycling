@@ -13,6 +13,7 @@ import 'features/auth/presentation/providers/auth_providers.dart';
 // authControllerProvider: giriş/kayıt/çıkış işlemlerini yürüten controller.
 import 'features/auth/presentation/providers/auth_controller.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/wallet/presentation/pages/history_page.dart';
 import 'features/wallet/presentation/widgets/points_balance_card.dart';
 import 'features/recycling/presentation/pages/scan_bin_page.dart';
 import 'features/recycling/presentation/pages/select_waste_page.dart';
@@ -108,6 +109,15 @@ class _HomePlaceholder extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Ünidesk'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history_rounded),
+            tooltip: 'Puan geçmişi',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const HistoryPage()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Çıkış yap',

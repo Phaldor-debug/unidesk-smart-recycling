@@ -1,4 +1,23 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "//": "Puan geçmişi: kullanıcının puanı ALINMIŞ oturumlarını çeker. İki eşitlik filtresi (uid + pointsClaimed) birlikte kullanıldığı için Firestore bileşik indeks ister.",
+      "collectionGroup": "sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "pointsClaimed", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "Yemekhane paneli: koddan aktif hakkı bulur (code + status).",
+      "collectionGroup": "redemptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "code", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
