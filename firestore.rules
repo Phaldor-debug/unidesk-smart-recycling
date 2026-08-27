@@ -28,21 +28,53 @@ service cloud.firestore {
     // isteği yapan kullanıcıyla eşleşmesi zorunlu (başkası adına
     // oturum açılamaz).
     match /sessions/{sessionId} {
+      // Yeni oturum SIFIRDAN başlamak zorunda: kimse hazır sayaçla veya
+      // "puanı alınmış" işaretiyle oturum açamaz.
       allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid;
-      allow read, update: if request.auth != null
-                          && resource.data.uid == request.auth.uid;
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.depositedCount == 0
+                    && request.resource.data.pointsClaimed == false;
+
+      allow read: if request.auth != null
+                  && resource.data.uid == request.auth.uid;
+
+      // Sahibi güncelleyebilir AMA: pointsClaimed bir kez true olduysa
+      // asla false'a döndürülemez ve sahibi değiştirilemez. Bu olmadan
+      // kullanıcı bayrağı sıfırlayıp AYNI oturumdan sınırsız kez puan
+      // toplayabiliyordu.
+      allow update: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == resource.data.uid
+                    && !(resource.data.pointsClaimed == true
+                         && request.resource.data.pointsClaimed == false);
+
       allow delete: if false; // Oturum geçmişi silinmesin.
     }
 
     // Bir hak (redemption) sadece onu talep eden kullanıcı tarafından
-    // oluşturulabilir. Okuma/güncelleme (yemekhane panelinin kodu bulup
-    // "kullanıldı" işaretlemesi için) GİRİŞ YAPMIŞ HERKESE açık — çünkü
-    // henüz ayrı bir personel rolü/girişi yok (bkz. üstteki not).
+    // oluşturulabilir. Okuma GİRİŞ YAPMIŞ HERKESE açık — yemekhane
+    // panelinin koddan hakkı bulabilmesi için gerekli (henüz ayrı bir
+    // personel rolü/girişi yok, bkz. üstteki not).
     match /redemptions/{redemptionId} {
       allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid;
-      allow read, update: if request.auth != null;
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'active';
+
+      allow read: if request.auth != null;
+
+      // Güncelleme SADECE "active -> used" tek yönlü geçişidir ve başka
+      // hiçbir alan değiştirilemez. Bu kısıt olmadan bir öğrenci kendi
+      // kullanılmış kodunu tekrar 'active' yapıp AYNI kodla sınırsız
+      // hak kullanabiliyordu; ya da başkasının kodunu/tutarını
+      // değiştirebiliyordu.
+      allow update: if request.auth != null
+                    && resource.data.status == 'active'
+                    && request.resource.data.status == 'used'
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.code == resource.data.code
+                    && request.resource.data.rewardId == resource.data.rewardId
+                    && request.resource.data.rewardTitle == resource.data.rewardTitle;
+
       allow delete: if false;
     }
 

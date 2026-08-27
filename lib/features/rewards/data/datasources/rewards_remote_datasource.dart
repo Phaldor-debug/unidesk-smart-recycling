@@ -86,8 +86,12 @@ class RewardsRemoteDataSource {
   }
 
   /// 6 haneli, insanın yemekhanede kolayca okuyup söyleyebileceği kod.
+  ///
+  /// Random.secure(): normal Random() tahmin edilebilir bir diziden üretir
+  /// (aynı tohumdan aynı sonuçlar) — kodu tahmin edilebilir kılardı.
+  /// secure() işletim sisteminin kriptografik üretecini kullanır.
   String _generateCode() {
-    final random = Random();
+    final random = Random.secure();
     return List.generate(6, (_) => random.nextInt(10)).join();
   }
 }

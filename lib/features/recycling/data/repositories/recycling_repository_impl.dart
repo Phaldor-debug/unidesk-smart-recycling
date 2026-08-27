@@ -35,7 +35,15 @@ class RecyclingRepositoryImpl implements RecyclingRepository {
   }
 
   @override
-  Future<void> setDepositedCount(String sessionId, int count) {
-    return _remote.setDepositedCount(sessionId, count);
+  Future<void> applyHardwareUpdate({
+    required String sessionId,
+    required SessionStatus status,
+    required int depositedCount,
+  }) {
+    return _remote.applyHardwareUpdate(
+      sessionId: sessionId,
+      status: status,
+      depositedCount: depositedCount,
+    );
   }
 }

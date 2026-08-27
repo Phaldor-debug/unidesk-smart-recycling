@@ -9,9 +9,9 @@ import '../../domain/entities/bin_command.dart';
 import '../../domain/entities/recycling_session.dart';
 import '../../domain/repositories/bin_command_repository.dart';
 import '../../domain/repositories/recycling_repository.dart';
+import '../../domain/usecases/apply_hardware_update.dart';
 import '../../domain/usecases/claim_session_points.dart';
 import '../../domain/usecases/publish_bin_command.dart';
-import '../../domain/usecases/set_deposited_count.dart';
 import '../../domain/usecases/simulate_hardware_events.dart';
 import '../../domain/usecases/start_recycling_session.dart';
 import '../../domain/usecases/watch_bin_command.dart';
@@ -41,8 +41,8 @@ final incrementDepositedCountProvider = Provider(
   (ref) => IncrementDepositedCount(ref.watch(recyclingRepositoryProvider)),
 );
 
-final setDepositedCountProvider = Provider(
-  (ref) => SetDepositedCount(ref.watch(recyclingRepositoryProvider)),
+final applyHardwareUpdateProvider = Provider(
+  (ref) => ApplyHardwareUpdate(ref.watch(recyclingRepositoryProvider)),
 );
 
 /// `.family`: aynı provider'ı FARKLI parametrelerle (burada: sessionId)

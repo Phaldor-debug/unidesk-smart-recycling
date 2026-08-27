@@ -82,6 +82,17 @@ int yerelSayac = 0;
 unsigned long sonAlgilamaZamani = 0;
 bool kapakAcik = false;
 
+// Sensörün bir ÖNCEKİ okunan hali. Oturum başında bilerek sıfırlanır:
+// aksi halde önceki oturumdan kalan LOW değeri yüzünden ilk algılama
+// kaçırılabiliyordu. (Eskiden sensorleriOku() içinde `static` idi ve
+// üç sensör bunu paylaşıyordu — tür değişince yanlış davranıyordu.)
+bool oncekiSensorDurumu = HIGH;
+
+// RTDB'ye yazılamamış sayaç var mı? WiFi anlık koptuğunda sayım
+// kaybolmasın diye, yazma başarısız olursa bayrak açılır ve sonraki
+// döngülerde tekrar denenir.
+bool sayacYazilmayiBekliyor = false;
+
 void setup() {
   Serial.begin(115200);
 
@@ -173,6 +184,10 @@ void komutlariKontrolEt() {
   yerelSayac = 0;
   kapakAcik = true;
   sonAlgilamaZamani = millis();
+  // Sensör geçmişini sıfırla — önceki oturumdan kalan LOW değeri
+  // yüzünden bu oturumun ilk algılaması kaçırılmasın.
+  oncekiSensorDurumu = HIGH;
+  sayacYazilmayiBekliyor = false;
 
   servoIcinAc(tur);
   durumYaz("lidOpen");
@@ -200,32 +215,59 @@ void sensorleriOku() {
   else if (aktifTur == "cam") pin = IR_PIN_CAM;
   if (pin == -1) return;
 
-  static bool oncekiDurum = HIGH;
   bool suankiDurum = digitalRead(pin);
 
   // HIGH -> LOW geçişi: yeni bir algılama (bir kez basılıp bırakılan
   // butonu/sensörü TEK algılama sayar, basılı tutmayı değil).
-  if (oncekiDurum == HIGH && suankiDurum == LOW) {
+  if (oncekiSensorDurumu == HIGH && suankiDurum == LOW) {
     yerelSayac++;
     sonAlgilamaZamani = millis();
     Serial.println("Algilama! Sayac: " + String(yerelSayac));
-    sayaciYaz(yerelSayac);
+    sayacYazilmayiBekliyor = true;
   }
-  oncekiDurum = suankiDurum;
+  oncekiSensorDurumu = suankiDurum;
+
+  // Yazılamamış sayaç varsa (yeni algılama ya da önceki denemenin
+  // başarısızlığı) tekrar dene. Böylece anlık bağlantı sorunu
+  // atılan atığın sayılmamasına yol açmaz.
+  if (sayacYazilmayiBekliyor) {
+    if (sayaciYaz(yerelSayac)) {
+      sayacYazilmayiBekliyor = false;
+    } else {
+      Serial.println("Sayac yazilamadi, tekrar denenecek.");
+    }
+  }
 }
 
-void durumYaz(String durum) {
-  Firebase.RTDB.setString(&fbdo, "/bin_commands/" BIN_ID "/status", durum);
+bool durumYaz(String durum) {
+  return Firebase.RTDB.setString(&fbdo, "/bin_commands/" BIN_ID "/status", durum);
 }
 
-void sayaciYaz(int adet) {
-  Firebase.RTDB.setInt(&fbdo, "/bin_commands/" BIN_ID "/depositedCount", adet);
+bool sayaciYaz(int adet) {
+  return Firebase.RTDB.setInt(&fbdo, "/bin_commands/" BIN_ID "/depositedCount", adet);
 }
 
 void oturumuBitir() {
+  // ÖNCE bekleyen sayacı yazmayı dene, SONRA "completed" bildir.
+  // Sıra önemli: uygulama "completed" görünce puanı hesaplayıp
+  // kilitliyor — sayaç o an eksikse kullanıcı puanını kaybederdi.
+  if (sayacYazilmayiBekliyor) {
+    if (sayaciYaz(yerelSayac)) {
+      sayacYazilmayiBekliyor = false;
+    } else {
+      // Yazamadık: oturumu KAPATMIYORUZ, sonraki döngüde tekrar denenecek.
+      Serial.println("Bitirme ertelendi: sayac henuz yazilamadi.");
+      return;
+    }
+  }
+
+  if (!durumYaz("completed")) {
+    Serial.println("Bitirme ertelendi: durum yazilamadi.");
+    return; // Kapağı da açık bırakıyoruz; bağlantı gelince tekrar denenir.
+  }
+
   Serial.println("Oturum bitti. Toplam: " + String(yerelSayac));
   servoIcinKapat(aktifTur);
-  durumYaz("completed");
 
   kapakAcik = false;
   aktifTur = "";

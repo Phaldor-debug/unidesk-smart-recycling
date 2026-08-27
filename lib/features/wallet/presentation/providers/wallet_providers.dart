@@ -26,9 +26,11 @@ final watchPointsBalanceProvider = Provider(
 final pointsBalanceProvider = StreamProvider<PointsBalance>((ref) {
   final user = ref.watch(authStateProvider).value;
   if (user == null) {
-    // Oturum yokken bu provider zaten kullanılmayacak (AuthGate LoginPage
-    // gösterir), ama tip güvenliği için boş bir akış döndürüyoruz.
-    return const Stream.empty();
+    // Oturum yokken bu provider zaten kullanılmamalı (AuthGate LoginPage
+    // gösterir). Yine de bir yerden okunursa, hiç değer yaymayan bir akış
+    // ekranı sonsuza kadar "yükleniyor"da bırakırdı — bunun yerine sıfır
+    // bakiye yayınlıyoruz.
+    return Stream.value(const PointsBalance(points: 0));
   }
   return ref.watch(watchPointsBalanceProvider).call(user.uid);
 });

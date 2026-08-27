@@ -45,12 +45,18 @@ class ActiveSessionPage extends ConsumerWidget {
       // kalan veri) yok say — sadece kendi oturumumuzu dinliyoruz.
       if (command.sessionId != sessionId) return;
 
-      if (command.status != currentSession.status) {
-        ref.read(updateSessionStatusProvider).call(sessionId, command.status);
-      }
-      if (command.depositedCount != currentSession.depositedCount) {
-        ref.read(setDepositedCountProvider).call(sessionId, command.depositedCount);
-      }
+      // Durum ve sayacı TEK bir yazmada gönderiyoruz. Ayrı ayrı
+      // gönderilseydi "completed" sayaçtan önce varabilir, puan eski
+      // sayaçla hesaplanıp kilitlenebilirdi (kullanıcı puanını kaybederdi).
+      final degisti = command.status != currentSession.status ||
+          command.depositedCount != currentSession.depositedCount;
+      if (!degisti) return;
+
+      ref.read(applyHardwareUpdateProvider).call(
+            sessionId: sessionId,
+            status: command.status,
+            depositedCount: command.depositedCount,
+          );
     });
 
     return Scaffold(

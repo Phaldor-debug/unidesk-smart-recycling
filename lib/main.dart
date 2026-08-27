@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // flutterfire configure komutunun ürettiği dosya: her platformun API anahtarları.
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
+import 'shared/widgets/big_action_card.dart';
 // authStateProvider: oturum durumunu canlı dinleyen provider.
 import 'features/auth/presentation/providers/auth_providers.dart';
 // authControllerProvider: giriş/kayıt/çıkış işlemlerini yürüten controller.
@@ -116,18 +117,27 @@ class _HomePlaceholder extends ConsumerWidget {
           ),
         ],
       ),
-      body: Column(
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Text('Hoş geldin:\n$email', textAlign: TextAlign.center),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'Hoş geldin,\n$email',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
+          const SizedBox(height: 4),
           // Puan bakiyesi kartı: Firestore'daki 'points' alanını canlı gösterir.
           const PointsBalanceCard(),
-          FilledButton.icon(
-            icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('Atık At'),
-            onPressed: () async {
+          const SizedBox(height: 8),
+          BigActionCard(
+            color: AppTheme.light.colorScheme.primary,
+            icon: Icons.qr_code_scanner_rounded,
+            title: 'Atık At',
+            subtitle: 'Kutunun QR\'ını okut, puan kazan',
+            onTap: () async {
               // 1) Önce kutunun QR'ını okut — dönen değer binId'dir.
               final binId = await Navigator.of(context).push<String>(
                 MaterialPageRoute(builder: (_) => const ScanBinPage()),
@@ -142,11 +152,13 @@ class _HomePlaceholder extends ConsumerWidget {
               );
             },
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.card_giftcard),
-            label: const Text('Ödüller'),
-            onPressed: () {
+          const SizedBox(height: 16),
+          BigActionCard(
+            color: const Color(0xFF7C3AED), // mor — ödülleri diğer aksiyonlardan ayırt eder
+            icon: Icons.card_giftcard_rounded,
+            title: 'Ödüller',
+            subtitle: 'Puanını harca, hak kazan',
+            onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const RewardsPage()),
               );
@@ -158,14 +170,16 @@ class _HomePlaceholder extends ConsumerWidget {
           if (kDebugMode) ...[
             const SizedBox(height: 24),
             const Divider(),
-            TextButton.icon(
-              icon: const Icon(Icons.qr_code_2),
-              label: const Text('🔧 Test Kutusu QR\'ını Göster'),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ShowBinQrPage()),
-                );
-              },
+            Center(
+              child: TextButton.icon(
+                icon: const Icon(Icons.qr_code_2),
+                label: const Text('🔧 Test Kutusu QR\'ını Göster'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ShowBinQrPage()),
+                  );
+                },
+              ),
             ),
           ],
         ],

@@ -31,8 +31,16 @@ abstract class RecyclingRepository {
   /// Debug simülatöründeki "+1 Adet Algıla" butonu bunu kullanır.
   Future<void> incrementDepositedCount(String sessionId);
 
-  /// Sayacı VERİLEN MUTLAK değere ayarlar (increment değil, set).
-  /// Gerçek ESP32/RTDB köprüsü bunu kullanır çünkü RTDB'deki depositedCount
-  /// zaten mutlak bir değer — Firestore'a onu birebir yansıtıyoruz.
-  Future<void> setDepositedCount(String sessionId, int count);
+  /// ESP32'den (RTDB üzerinden) gelen durumu Firestore'a TEK SEFERDE yazar.
+  ///
+  /// Neden tek metot: status ve depositedCount'u iki ayrı yazma olarak
+  /// göndermek YARIŞ DURUMU yaratıyordu — "completed" önce varırsa, puan
+  /// henüz güncellenmemiş (eski) sayaçla hesaplanıp kilitleniyordu ve
+  /// kullanıcı hak ettiği puanı alamıyordu. Tek update ile ikisi aynı
+  /// anda görünür olur, bu imkânsız hale gelir.
+  Future<void> applyHardwareUpdate({
+    required String sessionId,
+    required SessionStatus status,
+    required int depositedCount,
+  });
 }

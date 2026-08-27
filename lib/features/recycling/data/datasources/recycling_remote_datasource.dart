@@ -42,8 +42,18 @@ class RecyclingRemoteDataSource {
     return _sessions.doc(sessionId).update({'depositedCount': FieldValue.increment(1)});
   }
 
-  Future<void> setDepositedCount(String sessionId, int count) {
-    return _sessions.doc(sessionId).update({'depositedCount': count});
+  /// Donanımdan gelen durum + sayacı TEK bir update ile yazar.
+  /// İkisini ayrı ayrı yazmak yarış durumu yaratıyordu (bkz. repository
+  /// arayüzündeki açıklama), bu yüzden bilerek birleştirildi.
+  Future<void> applyHardwareUpdate({
+    required String sessionId,
+    required SessionStatus status,
+    required int depositedCount,
+  }) {
+    return _sessions.doc(sessionId).update({
+      'status': status.id,
+      'depositedCount': depositedCount,
+    });
   }
 
   /// Oturumun puanını kullanıcıya KESİN OLARAK BİR KEZ ekler.
@@ -56,10 +66,16 @@ class RecyclingRemoteDataSource {
     // aynı anda çağrılsa bile puan sadece bir kez eklenir.
     return _firestore.runTransaction((tx) async {
       final sessionSnap = await tx.get(sessionRef);
-      final alreadyClaimed = (sessionSnap.data()?['pointsClaimed'] as bool?) ?? false;
-      if (alreadyClaimed) return; // Güvenlik kilidi: ikinci çağrı hiçbir şey yapmaz.
+      if (!sessionSnap.exists) return;
 
-      tx.update(userRef, {'points': FieldValue.increment(session.pointsEarned)});
+      // Puanı, çağıran taraftan gelen (muhtemelen eskimiş) `session`
+      // nesnesinden DEĞİL, transaction içinde okunan TAZE veriden
+      // hesaplıyoruz. Aksi halde ekranın elindeki kopya bir an geride
+      // kalmışsa yanlış puan yazılırdı.
+      final fresh = RecyclingSessionModel.fromSnapshot(sessionSnap);
+      if (fresh.pointsClaimed) return; // Güvenlik kilidi: ikinci çağrı hiçbir şey yapmaz.
+
+      tx.update(userRef, {'points': FieldValue.increment(fresh.pointsEarned)});
       tx.update(sessionRef, {'pointsClaimed': true});
     });
   }

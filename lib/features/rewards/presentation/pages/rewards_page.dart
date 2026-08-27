@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/big_action_card.dart';
 import '../../../wallet/presentation/providers/wallet_providers.dart';
+import '../../../wallet/presentation/widgets/points_balance_card.dart';
 import '../providers/redeem_controller.dart';
 import '../providers/rewards_providers.dart';
 import 'redemption_code_page.dart';
@@ -51,65 +54,73 @@ class RewardsPage extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(bottom: 20),
         children: [
+          // Puan bakiyesi kartı: hem ana sayfada hem burada AYNI bileşen —
+          // marka tutarlılığı ve tek yerden bakım.
+          const PointsBalanceCard(),
           balance.when(
-            data: (value) => Card(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('Bakiyen: ${value.points} puan',
-                    style: Theme.of(context).textTheme.titleMedium),
-              ),
+            data: (_) => const SizedBox.shrink(),
+            loading: () => const SizedBox.shrink(),
+            error: (error, _) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text('Hata: $error'),
             ),
-            loading: () => const LinearProgressIndicator(),
-            error: (error, _) => Text('Hata: $error'),
           ),
-          const SizedBox(height: 16),
-          rewards.when(
-            data: (list) {
-              if (list.isEmpty) {
-                // Firestore'daki `rewards` koleksiyonu boş — henüz hiç
-                // ödül eklenmemiş. Firebase Console'dan eklenebilir.
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32),
-                  child: Text(
-                    'Henüz ödül eklenmedi.\n'
-                    'Firebase Console → Firestore → "rewards" koleksiyonuna\n'
-                    'title (metin) + costPoints (sayı) + active (true) alanlarıyla\n'
-                    'bir belge ekleyebilirsin.',
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              }
-              final currentPoints = balance.value?.points ?? 0;
-              return Column(
-                children: list.map((reward) {
-                  final canAfford = currentPoints >= reward.costPoints;
-                  return Card(
-                    child: ListTile(
-                      title: Text(reward.title),
-                      subtitle: Text('${reward.costPoints} puan'),
-                      trailing: FilledButton(
-                        // Yetersiz puanda veya bir talep zaten işlenirken buton kapalı.
-                        onPressed: (canAfford && !redeemState.isLoading)
-                            ? () => ref.read(redeemControllerProvider.notifier).redeem(reward)
-                            : null,
-                        child: redeemState.isLoading
-                            ? const SizedBox(
-                                height: 16,
-                                width: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Kullan'),
-                      ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+            child: rewards.when(
+              data: (list) {
+                if (list.isEmpty) {
+                  // Firestore'daki `rewards` koleksiyonu boş — henüz hiç
+                  // ödül eklenmemiş. Firebase Console'dan eklenebilir.
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Text(
+                      'Henüz ödül eklenmedi.\n'
+                      'Firebase Console → Firestore → "rewards" koleksiyonuna\n'
+                      'title (metin) + costPoints (sayı) + active (true) alanlarıyla\n'
+                      'bir belge ekleyebilirsin.',
+                      textAlign: TextAlign.center,
                     ),
                   );
-                }).toList(),
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Text('Hata: $error'),
+                }
+                final currentPoints = balance.value?.points ?? 0;
+                return Column(
+                  children: list.map((reward) {
+                    final canAfford = currentPoints >= reward.costPoints;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: BigActionCard(
+                        color: AppColors.gold,
+                        icon: Icons.redeem_rounded,
+                        title: reward.title,
+                        subtitle: canAfford
+                            ? '${reward.costPoints} puan — kullanılabilir'
+                            : '${reward.costPoints} puan gerekiyor',
+                        enabled: canAfford && !redeemState.isLoading,
+                        onTap: () => ref.read(redeemControllerProvider.notifier).redeem(reward),
+                        trailing: redeemState.isLoading
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => Text('Hata: $error'),
+            ),
           ),
         ],
       ),
