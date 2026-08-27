@@ -24,9 +24,18 @@ class SelectWastePage extends ConsumerWidget {
           wasteType: type,
         );
 
+    // Firestore'daki kalıcı kayıttan SONRA, ESP32'nin izleyeceği canlı
+    // komutu Realtime Database'e yazıyoruz. Gerçek donanım henüz yokken
+    // bile bu yazma zararsız — kimse dinlemiyorsa hiçbir şey olmaz.
+    await ref.read(publishBinCommandProvider).call(
+          binId: binId,
+          sessionId: sessionId,
+          wasteType: type,
+        );
+
     if (!context.mounted) return; // async çağrıdan sonra widget hâlâ ekranda mı, kontrol.
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ActiveSessionPage(sessionId: sessionId)),
+      MaterialPageRoute(builder: (_) => ActiveSessionPage(sessionId: sessionId, binId: binId)),
     );
   }
 

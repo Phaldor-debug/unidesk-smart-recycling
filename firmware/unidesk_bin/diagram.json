@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "author": "Ünidesk",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+
+    { "type": "wokwi-servo", "id": "servo_plastik", "top": -120, "left": 250, "attrs": { "horn": "single" } },
+    { "type": "wokwi-servo", "id": "servo_kagit", "top": -40, "left": 250, "attrs": { "horn": "single" } },
+    { "type": "wokwi-servo", "id": "servo_cam", "top": 40, "left": 250, "attrs": { "horn": "single" } },
+
+    { "type": "wokwi-pushbutton", "id": "ir_plastik", "top": -120, "left": 400, "attrs": { "color": "yellow", "label": "Plastik IR" } },
+    { "type": "wokwi-pushbutton", "id": "ir_kagit", "top": -40, "left": 400, "attrs": { "color": "blue", "label": "Kagit IR" } },
+    { "type": "wokwi-pushbutton", "id": "ir_cam", "top": 40, "left": 400, "attrs": { "color": "green", "label": "Cam IR" } }
+  ],
+  "connections": [
+    ["esp:13", "servo_plastik:PWM", "green", []],
+    ["esp:5V", "servo_plastik:V+", "red", []],
+    ["esp:GND.1", "servo_plastik:GND", "black", []],
+
+    ["esp:12", "servo_kagit:PWM", "green", []],
+    ["esp:5V", "servo_kagit:V+", "red", []],
+    ["esp:GND.1", "servo_kagit:GND", "black", []],
+
+    ["esp:14", "servo_cam:PWM", "green", []],
+    ["esp:5V", "servo_cam:V+", "red", []],
+    ["esp:GND.1", "servo_cam:GND", "black", []],
+
+    ["esp:27", "ir_plastik:1.l", "green", []],
+    ["ir_plastik:2.l", "esp:GND.2", "black", []],
+
+    ["esp:26", "ir_kagit:1.l", "green", []],
+    ["ir_kagit:2.l", "esp:GND.2", "black", []],
+
+    ["esp:25", "ir_cam:1.l", "green", []],
+    ["ir_cam:2.l", "esp:GND.2", "black", []]
+  ]
+}

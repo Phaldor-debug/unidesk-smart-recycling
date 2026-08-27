@@ -33,4 +33,9 @@ class RecyclingRepositoryImpl implements RecyclingRepository {
   Future<void> incrementDepositedCount(String sessionId) {
     return _remote.incrementDepositedCount(sessionId);
   }
+
+  @override
+  Future<void> setDepositedCount(String sessionId, int count) {
+    return _remote.setDepositedCount(sessionId, count);
+  }
 }

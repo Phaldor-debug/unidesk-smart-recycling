@@ -42,6 +42,10 @@ class RecyclingRemoteDataSource {
     return _sessions.doc(sessionId).update({'depositedCount': FieldValue.increment(1)});
   }
 
+  Future<void> setDepositedCount(String sessionId, int count) {
+    return _sessions.doc(sessionId).update({'depositedCount': count});
+  }
+
   /// Oturumun puanını kullanıcıya KESİN OLARAK BİR KEZ ekler.
   Future<void> claimPoints(RecyclingSession session) {
     final sessionRef = _sessions.doc(session.id);

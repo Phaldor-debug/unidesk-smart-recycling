@@ -10,8 +10,9 @@ import '../providers/recycling_providers.dart';
 /// her değiştirdiğinde bu ekran KENDİLİĞİNDEN güncellenir — sayfayı
 /// yenilemeye gerek yok, StreamProvider bunu otomatik sağlıyor.
 class ActiveSessionPage extends ConsumerWidget {
-  const ActiveSessionPage({super.key, required this.sessionId});
+  const ActiveSessionPage({super.key, required this.sessionId, required this.binId});
   final String sessionId;
+  final String binId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,6 +29,27 @@ class ActiveSessionPage extends ConsumerWidget {
           session.status == SessionStatus.completed &&
           !session.pointsClaimed) {
         ref.read(claimSessionPointsProvider).call(session);
+      }
+    });
+
+    // --- ESP32 köprüsü ---
+    // Realtime Database'deki canlı komutu (kapak durumu, sayaç) dinleyip
+    // Firestore'daki oturuma YANSITIYORUZ. Böylece ActiveSessionPage'in
+    // geri kalanı, verinin debug butonundan mı yoksa gerçek ESP32'den mi
+    // geldiğini hiç bilmez — ikisi de aynı Firestore alanlarını günceller.
+    ref.listen(binCommandProvider(binId), (previous, next) {
+      final command = next.value;
+      final currentSession = ref.read(activeSessionProvider(sessionId)).value;
+      if (command == null || currentSession == null) return;
+      // Bu kutunun komutu BAŞKA bir oturuma aitse (ör. önceki kullanıcıdan
+      // kalan veri) yok say — sadece kendi oturumumuzu dinliyoruz.
+      if (command.sessionId != sessionId) return;
+
+      if (command.status != currentSession.status) {
+        ref.read(updateSessionStatusProvider).call(sessionId, command.status);
+      }
+      if (command.depositedCount != currentSession.depositedCount) {
+        ref.read(setDepositedCountProvider).call(sessionId, command.depositedCount);
       }
     });
 

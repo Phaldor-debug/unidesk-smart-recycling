@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "bin_commands": {
+      "$binId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}

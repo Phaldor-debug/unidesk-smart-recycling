@@ -28,5 +28,11 @@ abstract class RecyclingRepository {
   Future<void> updateStatus(String sessionId, SessionStatus status);
 
   /// IR sensörün bir adet daha algıladığını bildirir (sayaç +1).
+  /// Debug simülatöründeki "+1 Adet Algıla" butonu bunu kullanır.
   Future<void> incrementDepositedCount(String sessionId);
+
+  /// Sayacı VERİLEN MUTLAK değere ayarlar (increment değil, set).
+  /// Gerçek ESP32/RTDB köprüsü bunu kullanır çünkü RTDB'deki depositedCount
+  /// zaten mutlak bir değer — Firestore'a onu birebir yansıtıyoruz.
+  Future<void> setDepositedCount(String sessionId, int count);
 }
