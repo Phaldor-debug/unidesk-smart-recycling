@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Ünidesk Geri Dönüşüm — Firestore güvenlik kuralları.
+//
+// Genel ilke: hiçbir şey varsayılan olarak açık değildir. Her koleksiyon
+// için sadece burada açıkça izin verilen okuma/yazma işlemleri geçerlidir.
+//
+// ÖNEMLİ NOT (bilinen sınır, gelecekte çözülecek):
+// Puan/oturum güncellemeleri şu an istemci (öğrencinin telefonu) tarafından
+// yapılıyor çünkü henüz ESP32/sunucu tarafı bir doğrulayıcı (Cloud Function)
+// yok. Bu kurallar "sadece kendi kaydını değiştirebilirsin" ile başkalarının
+// verisine erişimi engeller, ama teknik olarak bilgili bir kullanıcının
+// KENDİ puanını/oturumunu Firestore'a doğrudan yazarak "hile yapması"
+// hâlâ mümkündür. Bunun kalıcı çözümü, puan/oturum yazmalarını bir Cloud
+// Function veya güvenilir bir sunucuya taşımaktır — bu, admin paneliyle
+// birlikte planlanan bir sonraki güvenlik iyileştirmesi.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Giriş yapılmış her kullanıcı, YALNIZCA kendi kullanıcı belgesini
+    // okuyup yazabilir (puan bakiyesi burada tutuluyor).
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Bir atık atma oturumu sadece onu başlatan kullanıcı tarafından
+    // okunabilir/güncellenebilir. create'de yeni belgenin uid'sinin
+    // isteği yapan kullanıcıyla eşleşmesi zorunlu (başkası adına
+    // oturum açılamaz).
+    match /sessions/{sessionId} {
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow read, update: if request.auth != null
+                          && resource.data.uid == request.auth.uid;
+      allow delete: if false; // Oturum geçmişi silinmesin.
+    }
+
+    // Bir hak (redemption) sadece onu talep eden kullanıcı tarafından
+    // oluşturulabilir. Okuma/güncelleme (yemekhane panelinin kodu bulup
+    // "kullanıldı" işaretlemesi için) GİRİŞ YAPMIŞ HERKESE açık — çünkü
+    // henüz ayrı bir personel rolü/girişi yok (bkz. üstteki not).
+    match /redemptions/{redemptionId} {
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow read, update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // Ödül kataloğu: giriş yapmış herkes okuyabilir (Ödüller ekranı için).
+    // YAZMA YOK — kataloğu SADECE Firebase Console'dan (admin yetkisiyle,
+    // bu kurallardan muaf olarak) düzenliyoruz. İstemciden biri ödül
+    // ekleyip kendine bedava puan kazandıramaz.
+    match /rewards/{rewardId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+  }
+}

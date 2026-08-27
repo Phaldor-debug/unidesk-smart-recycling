@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "856846517376",
+    "project_id": "unidesk-geri-donusum",
+    "storage_bucket": "unidesk-geri-donusum.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:856846517376:android:08b8ac9da211a058321265",
+        "android_client_info": {
+          "package_name": "com.unidesk.unidesk_geri_donusum"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "856846517376-vr85gm8iqbus7g1089cfls59kevs0k6v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPItikjsl60Z93RFr66ZmxX9mBzg6AZZk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "856846517376-vr85gm8iqbus7g1089cfls59kevs0k6v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
