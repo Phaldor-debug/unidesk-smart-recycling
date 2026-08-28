@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/constants/firestore_paths.dart';
+import '../../../../core/utils/period.dart';
 import '../../domain/entities/recycling_session.dart';
 import '../../domain/entities/waste_type.dart';
 import '../models/recycling_session_model.dart';
@@ -14,6 +15,9 @@ class RecyclingRemoteDataSource {
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection(FirestorePaths.users);
+
+  CollectionReference<Map<String, dynamic>> get _monthlyScores =>
+      _firestore.collection(FirestorePaths.monthlyScores);
 
   Future<String> startSession({
     required String uid,
@@ -75,6 +79,11 @@ class RecyclingRemoteDataSource {
     // runTransaction: içindeki okuma+yazmalar TEK bir bütün olarak çalışır.
     // Aynı oturum için iki farklı yerden (ör. çift tıklama, iki cihaz)
     // aynı anda çağrılsa bile puan sadece bir kez eklenir.
+    final donem = suankiDonem();
+    // Belge kimliğini uid+dönemden üretiyoruz: aynı ay için ikinci bir
+    // kayıt oluşması imkânsız, ayrıca sorgulamadan doğrudan erişilebiliyor.
+    final scoreRef = _monthlyScores.doc('${session.uid}_$donem');
+
     return _firestore.runTransaction((tx) async {
       // Firestore transaction kuralı: TÜM okumalar yazmalardan önce olmalı.
       final sessionSnap = await tx.get(sessionRef);
@@ -89,30 +98,27 @@ class RecyclingRemoteDataSource {
 
       final userSnap = await tx.get(userRef);
       final kazanilan = fresh.pointsEarned;
-      final donem = suankiDonem();
-      final kayitliDonem = userSnap.data()?['monthlyPeriod'] as String?;
 
-      tx.update(userRef, {
-        // Harcanabilir bakiye: ödül alınca düşer.
-        'points': FieldValue.increment(kazanilan),
-        // Sıralama sayacı: SADECE artar, ödül harcaması bunu düşürmez.
-        // Böylece ödül kullanan kişi sıralamada geriye düşmez.
-        // Ay değiştiyse sıfırdan başlar (increment değil, doğrudan atama).
-        'monthlyPoints':
-            kayitliDonem == donem ? FieldValue.increment(kazanilan) : kazanilan,
-        'monthlyPeriod': donem,
-      });
+      // Harcanabilir bakiye: ödül alınca düşer.
+      tx.update(userRef, {'points': FieldValue.increment(kazanilan)});
+
+      // Sıralama skoru: aya özel kayıtta birikir, ödül harcaması bunu
+      // düşürmez. merge:true + increment sayesinde kayıt yoksa oluşur,
+      // varsa üzerine eklenir.
+      tx.set(
+        scoreRef,
+        {
+          'uid': session.uid,
+          // Ad sıralamada gösterilecek; kullanıcı belgesini herkese
+          // açmamak için buraya kopyalıyoruz.
+          'displayName': userSnap.data()?['displayName'] as String? ?? '',
+          'period': donem,
+          'points': FieldValue.increment(kazanilan),
+        },
+        SetOptions(merge: true),
+      );
+
       tx.update(sessionRef, {'pointsClaimed': true});
     });
   }
-}
-
-/// İçinde bulunulan ayın kimliği: "2026-08".
-///
-/// Cihaz saatinden üretiliyor — mevcut "istemciye güven" modeliyle
-/// tutarlı. Sunucu saatine taşımak, puan doğrulamasıyla birlikte
-/// Cloud Functions'a geçildiğinde yapılacak.
-String suankiDonem([DateTime? now]) {
-  final t = now ?? DateTime.now();
-  return '${t.year}-${t.month.toString().padLeft(2, '0')}';
 }

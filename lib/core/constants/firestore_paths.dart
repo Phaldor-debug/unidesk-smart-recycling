@@ -21,4 +21,13 @@ class FirestorePaths {
   /// admin panelinden) belge ekleyip/düzenleyip uygulamayı yeniden
   /// derlemeden ödül eklenebilsin diye.
   static const String rewards = 'rewards';
+
+  /// Her kullanıcının HER AY için ayrı bir skor kaydı.
+  /// Belge kimliği: "{uid}_{2026-08}".
+  ///
+  /// Neden ayrı koleksiyon: puan kullanıcı belgesinde tek bir alanda
+  /// tutulsaydı, yeni ay başlayınca sıfırlanır ve geçen ayın sıralaması
+  /// (dolayısıyla kazananlar) kaybolurdu. Aya özel kayıtla hiçbir ay
+  /// silinmiyor, geçmiş aylar sonradan da sorgulanabiliyor.
+  static const String monthlyScores = 'monthly_scores';
 }

@@ -5,7 +5,7 @@ class WatchLeaderboard {
   const WatchLeaderboard(this._repository);
   final LeaderboardRepository _repository;
 
-  Stream<List<LeaderboardEntry>> call({int limit = 50}) {
-    return _repository.watchTop(limit: limit);
+  Stream<List<LeaderboardEntry>> call({int limit = 50, String? donem}) {
+    return _repository.watchTop(limit: limit, donem: donem);
   }
 }

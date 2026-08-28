@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/period.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/leaderboard_entry.dart';
@@ -16,6 +17,7 @@ class LeaderboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final liste = ref.watch(leaderboardProvider);
     final benimUid = ref.watch(authStateProvider).value?.uid;
+    final gecenAy = ref.watch(previousMonthWinnersProvider).value ?? const [];
 
     return Scaffold(
       appBar: AppBar(
@@ -50,6 +52,10 @@ class LeaderboardPage extends ConsumerWidget {
                     const SizedBox(height: 20),
                     _Podyum(ilkUc: ilkUc, benimUid: benimUid),
                     const SizedBox(height: 28),
+                    if (gecenAy.isNotEmpty) ...[
+                      _GecenAyKazananlari(kazananlar: gecenAy),
+                      const SizedBox(height: 24),
+                    ],
                     if (digerleri.isNotEmpty) ...[
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 10),
@@ -427,6 +433,77 @@ class _BenimDurumum extends StatelessWidget {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+/// Geçen ayın ilk üçü. Skorlar aya özel kayıtlarda saklandığı için ay
+/// değişse bile kaybolmuyor — kazananlar sonradan da doğrulanabiliyor.
+class _GecenAyKazananlari extends StatelessWidget {
+  const _GecenAyKazananlari({required this.kazananlar});
+  final List<LeaderboardEntry> kazananlar;
+
+  static const _madalyalar = <int, Color>{
+    1: Color(0xFFFFD700),
+    2: Color(0xFFC0C0C0),
+    3: Color(0xFFCD7F32),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      decoration: BoxDecoration(
+        color: tema.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${donemAdi(oncekiDonem()).toUpperCase()} KAZANANLARI',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: tema.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (final kazanan in kazananlar)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.emoji_events_rounded,
+                    size: 18,
+                    color: _madalyalar[kazanan.rank] ?? tema.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      kazanan.gizliAd,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(
+                    '${kazanan.points}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: tema.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

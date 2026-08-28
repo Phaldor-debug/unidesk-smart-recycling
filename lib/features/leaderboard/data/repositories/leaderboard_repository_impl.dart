@@ -7,7 +7,7 @@ class LeaderboardRepositoryImpl implements LeaderboardRepository {
   final LeaderboardRemoteDataSource _remote;
 
   @override
-  Stream<List<LeaderboardEntry>> watchTop({int limit = 50}) {
-    return _remote.watchTop(limit: limit);
+  Stream<List<LeaderboardEntry>> watchTop({int limit = 50, String? donem}) {
+    return _remote.watchTop(limit: limit, donem: donem);
   }
 }

@@ -10,12 +10,12 @@
       ]
     },
     {
-      "//": "Sıralama tablosu: bu ayın kazananlarını puana göre sıralar (monthlyPeriod + monthlyPoints).",
-      "collectionGroup": "users",
+      "//": "Sıralama tablosu: bir ayın skorlarını puana göre sıralar (period + points).",
+      "collectionGroup": "monthly_scores",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "monthlyPeriod", "order": "ASCENDING" },
-        { "fieldPath": "monthlyPoints", "order": "DESCENDING" }
+        { "fieldPath": "period", "order": "ASCENDING" },
+        { "fieldPath": "points", "order": "DESCENDING" }
       ]
     },
     {

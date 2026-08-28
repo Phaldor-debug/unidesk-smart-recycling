@@ -1,30 +1,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/constants/firestore_paths.dart';
-import '../../../recycling/data/datasources/recycling_remote_datasource.dart'
-    show suankiDonem;
+import '../../../../core/utils/period.dart';
 import '../../domain/entities/leaderboard_entry.dart';
 
 class LeaderboardRemoteDataSource {
   LeaderboardRemoteDataSource(this._firestore);
   final FirebaseFirestore _firestore;
 
-  /// Sıralama, harcanabilir bakiyeye (`points`) DEĞİL, o ay KAZANILAN
-  /// puana (`monthlyPoints`) göre yapılır.
+  /// Sıralama, harcanabilir bakiyeye DEĞİL, o ay KAZANILAN puana göre.
   ///
   /// Sebep: bakiyeye göre sıralasaydık, ödül kullanan kişi puanı düştüğü
-  /// için sıralamada geriye düşerdi — yani sistemi en çok kullanan kişi
-  /// cezalandırılmış olurdu. Aylık kazanç sayacı sadece artar.
+  /// için sıralamada geriye düşerdi — sistemi en çok kullananı
+  /// cezalandırmış olurduk.
   ///
-  /// `monthlyPeriod` filtresi şart: bu alan olmadan geçen ay yüksek puan
-  /// alıp bu ay hiç atık atmayan kullanıcılar listede kalmaya devam ederdi.
-  Stream<List<LeaderboardEntry>> watchTop({required int limit}) {
-    final donem = suankiDonem();
+  /// Veri `monthly_scores` koleksiyonundan geliyor; her ay ayrı kayıt
+  /// olduğu için geçmiş aylar da aynı sorguyla okunabiliyor.
+  Stream<List<LeaderboardEntry>> watchTop({required int limit, String? donem}) {
+    final hedefDonem = donem ?? suankiDonem();
 
     return _firestore
-        .collection(FirestorePaths.users)
-        .where('monthlyPeriod', isEqualTo: donem)
-        .orderBy('monthlyPoints', descending: true)
+        .collection(FirestorePaths.monthlyScores)
+        .where('period', isEqualTo: hedefDonem)
+        .orderBy('points', descending: true)
         .limit(limit)
         .snapshots()
         .map((snap) {
@@ -33,9 +31,9 @@ class LeaderboardRemoteDataSource {
       return List.generate(snap.docs.length, (index) {
         final data = snap.docs[index].data();
         return LeaderboardEntry(
-          uid: snap.docs[index].id,
+          uid: data['uid'] as String? ?? '',
           displayName: data['displayName'] as String? ?? '',
-          points: data['monthlyPoints'] as int? ?? 0,
+          points: data['points'] as int? ?? 0,
           rank: index + 1,
         );
       });
