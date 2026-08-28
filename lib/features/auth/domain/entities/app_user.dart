@@ -5,10 +5,16 @@ class AppUser {
   const AppUser({
     required this.uid,
     required this.email,
+    required this.displayName,
     required this.points,
   });
 
   final String uid;
   final String email;
+
+  /// Öğrencinin adı soyadı. Yemekhanede kodu doğrulayan personelin
+  /// "bu hak kimin" sorusuna cevap verebilmesi için gerekli.
+  final String displayName;
+
   final int points;
 }

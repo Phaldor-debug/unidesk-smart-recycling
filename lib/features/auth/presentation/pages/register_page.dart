@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/brand_header.dart';
 import '../providers/auth_controller.dart';
 
@@ -12,6 +13,7 @@ class RegisterPage extends ConsumerStatefulWidget {
 }
 
 class _RegisterPageState extends ConsumerState<RegisterPage> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
@@ -21,6 +23,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -33,6 +36,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     ref.read(authControllerProvider.notifier).signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          displayName: _nameController.text.trim(),
         );
   }
 
@@ -70,6 +74,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextFormField(
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Ad Soyad',
+                      prefixIcon: Icon(Icons.person_outline_rounded),
+                    ),
+                    validator: (value) => (value == null || value.trim().length < 3)
+                        ? 'Adını ve soyadını gir'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
@@ -77,9 +94,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       labelText: 'E-posta',
                       prefixIcon: Icon(Icons.mail_outline_rounded),
                     ),
-                    validator: (value) => (value == null || !value.contains('@'))
-                        ? 'Geçerli bir e-posta gir'
-                        : null,
+                    validator: (value) {
+                      if (value == null || !value.contains('@')) {
+                        return 'Geçerli bir e-posta gir';
+                      }
+                      // Öğrenci doğrulaması: AppConstants'ta izinli uzantı
+                      // tanımlıysa sadece o uzantılar kayıt olabilir.
+                      if (!AppConstants.epostaUygunMu(value)) {
+                        final uzantilar =
+                            AppConstants.izinliEpostaUzantilari.map((u) => '@$u').join(', ');
+                        return 'Sadece okul e-postasıyla kayıt olabilirsin ($uzantilar)';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 14),
                   TextFormField(

@@ -13,9 +13,14 @@ import 'features/auth/presentation/providers/auth_providers.dart';
 // authControllerProvider: giriş/kayıt/çıkış işlemlerini yürüten controller.
 import 'features/auth/presentation/providers/auth_controller.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/profile_page.dart';
 import 'features/wallet/presentation/pages/history_page.dart';
 import 'features/wallet/presentation/widgets/points_balance_card.dart';
+import 'features/recycling/presentation/pages/active_session_page.dart';
 import 'features/recycling/presentation/pages/scan_bin_page.dart';
+import 'features/recycling/presentation/providers/recycling_providers.dart';
+import 'features/recycling/domain/entities/recycling_session.dart';
+import 'features/recycling/domain/entities/waste_type.dart';
 import 'features/recycling/presentation/pages/select_waste_page.dart';
 import 'features/recycling/presentation/pages/show_bin_qr_page.dart';
 import 'features/rewards/presentation/pages/rewards_page.dart';
@@ -80,9 +85,8 @@ class AuthGate extends ConsumerWidget {
           // Giriş yapılmamış → giriş ekranını göster.
           return const LoginPage();
         }
-        // Giriş yapılmış → gerçek ana sayfa (wallet/recycling) gelene kadar
-        // geçici bir ekran; oturumun gerçekten çalıştığını kanıtlar.
-        return _HomePlaceholder(email: user.email ?? user.uid);
+        // Giriş yapılmış → ana sayfa.
+        return const HomePage();
       },
       // 2) Akış ilk değerini henüz yaymadı → yükleniyor çemberi.
       loading: () => const Scaffold(
@@ -96,15 +100,20 @@ class AuthGate extends ConsumerWidget {
   }
 }
 
-/// Giriş yapılınca gösterilen geçici ana sayfa. Asıl amacı: oturumun
-/// gerçekten açık kaldığını ve çıkışın çalıştığını kanıtlamak. Buraya
-/// ilerde wallet/recycling ekranları gelecek.
-class _HomePlaceholder extends ConsumerWidget {
-  const _HomePlaceholder({required this.email});
-  final String email;
+/// Giriş yapılınca gösterilen ana sayfa.
+class HomePage extends ConsumerWidget {
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).value;
+    final ongoing = ref.watch(ongoingSessionProvider).value;
+    // Ad henüz yüklenmediyse ya da eski kayıtlarda boşsa e-postanın
+    // @ öncesini kullanıyoruz — karşılama satırı hiç boş kalmasın.
+    final gorunenAd = (user?.displayName.isNotEmpty ?? false)
+        ? user!.displayName
+        : (user?.email.split('@').first ?? '');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ünidesk'),
@@ -119,11 +128,13 @@ class _HomePlaceholder extends ConsumerWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Çıkış yap',
-            // Çıkış yapılınca authStateProvider yeni değeri (null) yayınlar,
-            // AuthGate bunu görüp otomatik olarak LoginPage'e döner.
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            icon: const Icon(Icons.person_outline_rounded),
+            tooltip: 'Profilim',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfilePage()),
+              );
+            },
           ),
         ],
       ),
@@ -133,12 +144,19 @@ class _HomePlaceholder extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
-              'Hoş geldin,\n$email',
+              gorunenAd.isEmpty ? 'Hoş geldin!' : 'Hoş geldin, $gorunenAd',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
           const SizedBox(height: 4),
+          // Kullanıcı atma ekranından çıktıysa oturum askıda kalıyor.
+          // Buradan geri dönebilsin — yoksa kapak açık kalır ve attığı
+          // atıklar Firestore'a yansımaz.
+          if (ongoing != null) ...[
+            _DevamEdenOturumUyarisi(session: ongoing),
+            const SizedBox(height: 12),
+          ],
           // Puan bakiyesi kartı: Firestore'daki 'points' alanını canlı gösterir.
           const PointsBalanceCard(),
           const SizedBox(height: 8),
@@ -193,6 +211,62 @@ class _HomePlaceholder extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Yarıda kalmış bir atık atma işlemi olduğunda ana sayfada beliren uyarı.
+class _DevamEdenOturumUyarisi extends StatelessWidget {
+  const _DevamEdenOturumUyarisi({required this.session});
+  final RecyclingSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.gold.withValues(alpha: 0.15),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ActiveSessionPage(
+                sessionId: session.id,
+                binId: session.binId,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.pending_actions_rounded, color: AppColors.gold),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Devam eden bir işlemin var',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${session.wasteType.label} — dokun ve devam et',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
       ),
     );
   }

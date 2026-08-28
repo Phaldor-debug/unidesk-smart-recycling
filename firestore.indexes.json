@@ -10,6 +10,24 @@
       ]
     },
     {
+      "//": "Ana sayfa: kullanıcının yarıda kalmış oturumunu bulur (uid + status).",
+      "collectionGroup": "sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "Kodlarım ekranı: kullanıcının kullanılmamış haklarını çeker (uid + status).",
+      "collectionGroup": "redemptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
       "//": "Yemekhane paneli: koddan aktif hakkı bulur (code + status).",
       "collectionGroup": "redemptions",
       "queryScope": "COLLECTION",

@@ -7,6 +7,7 @@ import '../../../wallet/presentation/providers/wallet_providers.dart';
 import '../../../wallet/presentation/widgets/points_balance_card.dart';
 import '../providers/redeem_controller.dart';
 import '../providers/rewards_providers.dart';
+import 'my_codes_page.dart';
 import 'redemption_code_page.dart';
 import 'staff_verify_page.dart';
 
@@ -18,6 +19,7 @@ class RewardsPage extends ConsumerWidget {
     final balance = ref.watch(pointsBalanceProvider);
     final rewards = ref.watch(rewardsListProvider);
     final redeemState = ref.watch(redeemControllerProvider);
+    final myCodes = ref.watch(myActiveRedemptionsProvider);
 
     // Talep başarıyla sonuçlandığında (yükleniyordan veriye geçtiğinde ve
     // bir kod üretildiğinde) kod ekranına geç.
@@ -39,6 +41,21 @@ class RewardsPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Ödüller'),
         actions: [
+          // Kullanılmamış kodlar: sayı varsa rozetle belirtiliyor ki
+          // kullanıcı elinde bekleyen bir hakkı olduğunu fark etsin.
+          IconButton(
+            icon: Badge(
+              isLabelVisible: (myCodes.value?.isNotEmpty ?? false),
+              label: Text('${myCodes.value?.length ?? 0}'),
+              child: const Icon(Icons.confirmation_number_outlined),
+            ),
+            tooltip: 'Kodlarım',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MyCodesPage()),
+              );
+            },
+          ),
           // GEÇİCİ: gerçek uygulamada bu, öğrencinin göremeyeceği ayrı bir
           // yemekhane personeli girişi/uygulaması olurdu. Şimdilik demo
           // için aynı uygulama içinde erişilebilir bıraktık.

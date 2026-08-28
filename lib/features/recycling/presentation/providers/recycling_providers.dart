@@ -15,7 +15,9 @@ import '../../domain/usecases/publish_bin_command.dart';
 import '../../domain/usecases/simulate_hardware_events.dart';
 import '../../domain/usecases/start_recycling_session.dart';
 import '../../domain/usecases/watch_bin_command.dart';
+import '../../domain/usecases/watch_ongoing_session.dart';
 import '../../domain/usecases/watch_recycling_session.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 
 final recyclingRemoteDataSourceProvider = Provider<RecyclingRemoteDataSource>((ref) {
   return RecyclingRemoteDataSource(ref.watch(firestoreProvider));
@@ -50,6 +52,15 @@ final applyHardwareUpdateProvider = Provider(
 final activeSessionProvider = StreamProvider.family<RecyclingSession, String>((ref, sessionId) {
   final watchSession = WatchRecyclingSession(ref.watch(recyclingRepositoryProvider));
   return watchSession(sessionId);
+});
+
+/// Kullanıcının yarıda kalmış oturumu (varsa). Ana sayfa bunu gösterip
+/// "devam et" seçeneği sunar.
+final ongoingSessionProvider = StreamProvider<RecyclingSession?>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(null);
+  final watch = WatchOngoingSession(ref.watch(recyclingRepositoryProvider));
+  return watch(user.uid);
 });
 
 // --- ESP32 <-> uygulama köprüsü (Realtime Database) ---

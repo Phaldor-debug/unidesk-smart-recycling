@@ -11,8 +11,16 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remote;
 
   @override
-  Future<AppUser> signUp({required String email, required String password}) {
-    return _remote.signUp(email: email, password: password);
+  Future<AppUser> signUp({
+    required String email,
+    required String password,
+    required String displayName,
+  }) {
+    return _remote.signUp(
+      email: email,
+      password: password,
+      displayName: displayName,
+    );
   }
 
   @override
@@ -21,5 +29,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Stream<AppUser> watchCurrentUser(String uid) => _remote.watchCurrentUser(uid);
+
+  @override
   Future<void> signOut() => _remote.signOut();
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) {
+    return _remote.sendPasswordResetEmail(email);
+  }
 }

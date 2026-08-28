@@ -31,6 +31,17 @@ class RecyclingRemoteDataSource {
     return _sessions.doc(sessionId).snapshots().map(RecyclingSessionModel.fromSnapshot);
   }
 
+  Stream<RecyclingSessionModel?> watchOngoingSession(String uid) {
+    return _sessions
+        .where('uid', isEqualTo: uid)
+        .where('status', whereIn: [SessionStatus.pending.id, SessionStatus.lidOpen.id])
+        .limit(1)
+        .snapshots()
+        .map((snap) => snap.docs.isEmpty
+            ? null
+            : RecyclingSessionModel.fromSnapshot(snap.docs.first));
+  }
+
   Future<void> updateStatus(String sessionId, SessionStatus status) {
     return _sessions.doc(sessionId).update({'status': status.id});
   }

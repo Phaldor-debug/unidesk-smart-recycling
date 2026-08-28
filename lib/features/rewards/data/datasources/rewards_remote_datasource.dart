@@ -31,6 +31,15 @@ class RewardsRemoteDataSource {
         );
   }
 
+  /// Kullanıcının kullanılmamış (aktif) kodlarını canlı izler.
+  Stream<List<RedemptionModel>> watchMyActiveRedemptions(String uid) {
+    return _redemptions
+        .where('uid', isEqualTo: uid)
+        .where('status', isEqualTo: RedemptionStatus.active.id)
+        .snapshots()
+        .map((snap) => snap.docs.map(RedemptionModel.fromSnapshot).toList());
+  }
+
   Future<RedemptionModel> redeem({required String uid, required Reward reward}) async {
     final userRef = _users.doc(uid);
     // .doc() (parametresiz): id'yi ÖNCEDEN üretir ama belgeyi henüz

@@ -5,6 +5,10 @@ abstract class RewardsRepository {
   /// Aktif ödül kataloğunu CANLI izler (Firestore'daki `rewards` koleksiyonu).
   Stream<List<Reward>> watchRewards();
 
+  /// Kullanıcının HENÜZ KULLANILMAMIŞ haklarını (kodlarını) canlı izler.
+  /// Kod ekranı kapatılınca kodun kaybolmaması için gerekli.
+  Stream<List<Redemption>> watchMyActiveRedemptions(String uid);
+
   /// Kullanıcının puanını düşer ve yeni bir kod üretir.
   /// Yeterli puan yoksa hata fırlatır (puan düşülmez, kod üretilmez).
   Future<Redemption> redeem({required String uid, required Reward reward});

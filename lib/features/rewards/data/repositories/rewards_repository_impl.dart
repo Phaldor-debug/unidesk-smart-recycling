@@ -11,6 +11,11 @@ class RewardsRepositoryImpl implements RewardsRepository {
   Stream<List<Reward>> watchRewards() => _remote.watchRewards();
 
   @override
+  Stream<List<Redemption>> watchMyActiveRedemptions(String uid) {
+    return _remote.watchMyActiveRedemptions(uid);
+  }
+
+  @override
   Future<Redemption> redeem({required String uid, required Reward reward}) {
     return _remote.redeem(uid: uid, reward: reward);
   }

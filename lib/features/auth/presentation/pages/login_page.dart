@@ -24,6 +24,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   // Şifre alanı varsayılan olarak gizli; göz ikonuyla açılıp kapanır.
   bool _sifreGizli = true;
 
+  // Son işlem şifre sıfırlama mıydı? Controller'ın state'i giriş ile
+  // ortak olduğu için, başarı mesajının hangisine ait olduğunu bu
+  // bayrakla ayırt ediyoruz.
+  bool _sifreSifirlamaIstendi = false;
+
   @override
   void dispose() {
     // Widget ekrandan kalkarken controller'ları serbest bırakmak ZORUNLU;
@@ -46,6 +51,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         );
   }
 
+  void _sifremiUnuttum() {
+    final email = _emailController.text.trim();
+    // Sıfırlama e-postası göndermek için adres şart; kullanıcıyı boş
+    // istekle Firebase'e göndermek yerine burada uyarıyoruz.
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Önce e-posta adresini yaz, sonra tekrar dene.'),
+        ),
+      );
+      return;
+    }
+
+    _sifreSifirlamaIstendi = true;
+    ref.read(authControllerProvider.notifier).sendPasswordReset(email);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Controller'ın durumunu (yükleniyor / başarılı / hatalı) izliyoruz.
@@ -55,8 +77,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     // tekrar değil). Hata oluşunca ekranın altında bir mesaj gösteriyoruz.
     ref.listen(authControllerProvider, (previous, next) {
       if (next is AsyncError) {
+        _sifreSifirlamaIstendi = false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.error.toString())),
+        );
+      }
+      // Şifre sıfırlama başarıyla tamamlandıysa kullanıcıyı bilgilendir.
+      // (Giriş başarılıysa AuthGate zaten ekranı değiştirir, mesaja gerek yok.)
+      if (previous is AsyncLoading && next is AsyncData && _sifreSifirlamaIstendi) {
+        _sifreSifirlamaIstendi = false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Şifre sıfırlama bağlantısı e-postana gönderildi.'),
+          ),
         );
       }
     });
@@ -123,7 +156,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           )
                         : const Text('Giriş Yap'),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: authState.isLoading ? null : _sifremiUnuttum,
+                    child: const Text('Şifremi unuttum'),
+                  ),
+                  const Divider(height: 28),
                   TextButton(
                     onPressed: authState.isLoading
                         ? null

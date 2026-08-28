@@ -22,6 +22,11 @@ class RecyclingRepositoryImpl implements RecyclingRepository {
   }
 
   @override
+  Stream<RecyclingSession?> watchOngoingSession(String uid) {
+    return _remote.watchOngoingSession(uid);
+  }
+
+  @override
   Future<void> claimPoints(RecyclingSession session) => _remote.claimPoints(session);
 
   @override

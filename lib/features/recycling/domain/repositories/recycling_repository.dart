@@ -15,6 +15,12 @@ abstract class RecyclingRepository {
   /// bir RecyclingSession yayınlar.
   Stream<RecyclingSession> watchSession(String sessionId);
 
+  /// Kullanıcının DEVAM EDEN (henüz tamamlanmamış) oturumunu izler.
+  /// Kullanıcı atma ekranından çıkarsa oturum askıda kalıyordu; ana
+  /// sayfa bunu görüp "devam et" seçeneği sunabilsin diye eklendi.
+  /// Devam eden oturum yoksa null yayınlar.
+  Stream<RecyclingSession?> watchOngoingSession(String uid);
+
   /// Oturum tamamlandığında kazanılan puanı kullanıcıya EKLER.
   /// Aynı oturumdan iki kere çağrılsa bile puan sadece bir kez eklenir.
   Future<void> claimPoints(RecyclingSession session);

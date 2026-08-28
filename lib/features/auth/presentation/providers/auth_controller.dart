@@ -5,8 +5,12 @@ import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/sign_in.dart';
+import '../../domain/usecases/send_password_reset.dart';
 import '../../domain/usecases/sign_out.dart';
 import '../../domain/usecases/sign_up.dart';
+import '../../domain/usecases/watch_current_user.dart';
+import 'auth_providers.dart';
+import '../../domain/entities/app_user.dart';
 
 // --- Bağımlılık zinciri: her katman bir öncekini provider ile alır ---
 // datasource -> repository -> usecase -> controller
@@ -28,6 +32,17 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 final signUpProvider = Provider((ref) => SignUp(ref.watch(authRepositoryProvider)));
 final signInProvider = Provider((ref) => SignIn(ref.watch(authRepositoryProvider)));
 final signOutProvider = Provider((ref) => SignOut(ref.watch(authRepositoryProvider)));
+final sendPasswordResetProvider =
+    Provider((ref) => SendPasswordReset(ref.watch(authRepositoryProvider)));
+final watchCurrentUserProvider =
+    Provider((ref) => WatchCurrentUser(ref.watch(authRepositoryProvider)));
+
+/// Giriş yapmış kullanıcının profil bilgisi (ad, e-posta, puan), canlı.
+final currentUserProvider = StreamProvider<AppUser?>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(null);
+  return ref.watch(watchCurrentUserProvider).call(user.uid);
+});
 
 /// Login/Register ekranlarının kullanacağı controller.
 ///
@@ -42,14 +57,31 @@ class AuthController extends AsyncNotifier<void> {
     // bir şey yok, state otomatik olarak AsyncData(null) olur.
   }
 
-  Future<void> signUp({required String email, required String password}) async {
+  Future<void> signUp({
+    required String email,
+    required String password,
+    required String displayName,
+  }) async {
     state = const AsyncLoading();
     // AsyncValue.guard: içindeki kodu çalıştırır; bir hata (AppException)
     // fırlarsa yakalayıp otomatik olarak AsyncError'a çevirir. Elle
     // try/catch yazmamıza gerek kalmaz.
     state = await AsyncValue.guard(() async {
-      await ref.read(signUpProvider).call(email: email, password: password);
+      await ref.read(signUpProvider).call(
+            email: email,
+            password: password,
+            displayName: displayName,
+          );
     });
+  }
+
+  /// Şifre sıfırlama e-postası gönderir. Sonuç ekranda SnackBar ile
+  /// bildirilir; state akışı diğer işlemlerle aynı (loading/data/error).
+  Future<void> sendPasswordReset(String email) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(sendPasswordResetProvider).call(email),
+    );
   }
 
   Future<void> signIn({required String email, required String password}) async {
