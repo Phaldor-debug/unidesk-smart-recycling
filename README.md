@@ -58,6 +58,11 @@ lib/
 | Donanım | ESP32, 3× servo motor, 3× IR engel algılama sensörü |
 | Firmware | Arduino/C++, Firebase ESP Client |
 
+## Yeni bir bilgisayarda kurulum
+
+Projeyi başka bir makineye taşıyorsan [docs/YENI-BILGISAYAR.md](docs/YENI-BILGISAYAR.md)
+adım adım kurulumu, karşılaşılan bilinen sorunları ve çözümlerini içerir.
+
 ## Geliştirme
 
 ```bash
