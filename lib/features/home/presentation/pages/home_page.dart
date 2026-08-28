@@ -32,7 +32,7 @@ class HomePage extends ConsumerWidget {
     ref.listen(ongoingSessionProvider, (previous, next) {
       final session = next.value;
       if (session == null) return;
-      ref.read(sessionAutoCloseProvider.notifier).gerekiyorsaZamanla(session.id);
+      ref.read(sessionAutoCloseProvider.notifier).gerekiyorsaKapat(session.id);
     });
 
     // Ad henüz yüklenmediyse ya da eski kayıtlarda boşsa, Firebase Auth

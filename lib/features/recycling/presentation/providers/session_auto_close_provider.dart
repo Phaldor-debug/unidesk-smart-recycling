@@ -1,64 +1,63 @@
-import 'dart:async';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/recycling_session.dart';
 import 'recycling_providers.dart';
 
-/// Yarıda bırakılan oturumu belirli bir süre sonra otomatik kapatır.
+/// Yarıda bırakılan oturumu kapatır.
 ///
-/// Neden gerekli: kullanıcı atma ekranından çıkarsa oturum "lidOpen"
-/// durumunda askıda kalıyordu — kapak açık kalıyor, o ana kadar sayılan
-/// atıkların puanı da hiç işlenmiyordu. Bu sınıf hem oturumu kapatır
-/// hem de o ana kadar sayılan adedin puanını kullanıcıya yazar.
+/// Kullanıcı atma ekranından çıktığı ANDA oturum bitirilir: o ana kadar
+/// sayılan atıkların puanı yazılır ve oturum "tamamlandı" olur. Beklemeli
+/// bir sürüm denendi ama ekrandan çıkınca "devam eden işlemin var" uyarısı
+/// gereksizce asılı kalıyordu; kullanıcı için de "çıktım demek bitti demek"
+/// daha anlaşılır.
+///
+/// Kapağın fiziksel olarak kapanması ESP32'nin işi: firmware kendi
+/// 5 saniyelik boşta kalma sayacıyla servoyu kapatıyor. Buradaki kapatma
+/// oturumu ve puanı sonlandırır, donanıma komut göndermez.
 class SessionAutoClose extends Notifier<void> {
-  /// Ekrandan çıkıldıktan sonra oturumun kapanması için beklenen süre.
-  /// Kullanıcı hemen geri dönerse iptal edilir.
-  static const Duration bekleme = Duration(seconds: 10);
-
-  Timer? _zamanlayici;
-
-  /// O an ekranda AÇIK olan oturum. Açık bir oturum otomatik kapatılmaz.
+  /// O an ekranda AÇIK olan oturum. Açık bir oturum kapatılmaz.
+  ///
+  /// Bu bilgi ekranlar arasında taşınıyor; provider bir an için kimse
+  /// dinlemediği için atılırsa bilgi kaybolur ve aktif oturum yanlışlıkla
+  /// kapatılabilirdi. keepAlive bunu engelliyor.
   String? _ekrandakiOturum;
+
+  /// Aynı oturumu iki kez kapatmaya çalışmayalım (çıkış + ana sayfa
+  /// dinleyicisi arka arkaya tetiklenebiliyor).
+  final Set<String> _kapatiliyor = {};
 
   @override
   void build() {
-    // Provider yok edilirken bekleyen zamanlayıcı da iptal edilmeli,
-    // yoksa uygulama kapandıktan sonra çalışmaya çalışır.
-    ref.onDispose(() => _zamanlayici?.cancel());
+    ref.keepAlive();
   }
 
-  /// Kullanıcı oturum ekranını açtı — bekleyen kapatmayı iptal et.
+  /// Kullanıcı oturum ekranını açtı — bu oturum artık korumalı.
+  ///
+  /// Oturumu OLUŞTURAN ekran da bunu çağırmalı: aksi halde Firestore'dan
+  /// gelen "devam eden oturum" bildirimi, kullanıcı daha atma ekranına
+  /// varmadan oturumu kapatabilir.
   void ekranaGirildi(String sessionId) {
     _ekrandakiOturum = sessionId;
-    _zamanlayici?.cancel();
-    _zamanlayici = null;
   }
 
-  /// Kullanıcı oturum ekranından çıktı — geri dönmezse kapat.
+  /// Kullanıcı oturum ekranından çıktı — oturumu hemen bitir.
   void ekrandanCikildi(String sessionId) {
     if (_ekrandakiOturum == sessionId) _ekrandakiOturum = null;
-    _zamanla(sessionId);
+    _kapat(sessionId);
   }
 
   /// Uygulama yeniden açıldığında geride kalmış oturumlar için.
-  /// Ekranda açık olan ya da zaten sıraya alınmış oturumu tekrar
-  /// zamanlamaz.
-  void gerekiyorsaZamanla(String sessionId) {
+  /// Ekranda açık olan oturuma dokunmaz.
+  void gerekiyorsaKapat(String sessionId) {
     if (_ekrandakiOturum == sessionId) return;
-    if (_zamanlayici != null) return;
-    _zamanla(sessionId);
-  }
-
-  void _zamanla(String sessionId) {
-    _zamanlayici?.cancel();
-    _zamanlayici = Timer(bekleme, () async {
-      _zamanlayici = null;
-      await _kapat(sessionId);
-    });
+    _kapat(sessionId);
   }
 
   Future<void> _kapat(String sessionId) async {
+    if (_kapatiliyor.contains(sessionId)) return;
+    _kapatiliyor.add(sessionId);
+
     final repository = ref.read(recyclingRepositoryProvider);
     try {
       final oturum = await repository.watchSession(sessionId).first;
@@ -70,9 +69,14 @@ class SessionAutoClose extends Notifier<void> {
       // puanı ekleyen dinleyici çalışmıyor. claimPoints zaten taze
       // veriyi okuyup tek seferlik davranıyor, iki kez yazma riski yok.
       await repository.claimPoints(oturum);
-    } catch (_) {
-      // Ağ hatası vb. — sessizce geç. Oturum askıda kalırsa kullanıcı
-      // ana sayfadaki uyarıdan tekrar girip bitirebilir.
+    } catch (hata, iz) {
+      // Ağ hatası vb. Oturum askıda kalır; kullanıcı ana sayfadaki
+      // "devam eden işlem" uyarısından tekrar girip bitirebilir.
+      // Sessizce yutmuyoruz: bu hata gerçekten olursa geliştirme
+      // sırasında görünmesi lazım, yoksa sebebi anlaşılmaz.
+      debugPrint('Oturum kapatılamadı ($sessionId): $hata\n$iz');
+    } finally {
+      _kapatiliyor.remove(sessionId);
     }
   }
 }

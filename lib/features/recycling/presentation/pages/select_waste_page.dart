@@ -5,6 +5,7 @@ import '../../../../shared/widgets/big_action_card.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/waste_type.dart';
 import '../providers/recycling_providers.dart';
+import '../providers/session_auto_close_provider.dart';
 import '../utils/waste_type_ui.dart';
 import 'active_session_page.dart';
 
@@ -24,6 +25,11 @@ class SelectWastePage extends ConsumerWidget {
           binId: binId,
           wasteType: type,
         );
+
+    // Oturumu HEMEN korumaya alıyoruz. Aksi halde Firestore'dan gelen
+    // "devam eden oturum" bildirimi ana sayfaya, kullanıcı daha atma
+    // ekranına varmadan ulaşıp oturumu kapatabilirdi.
+    ref.read(sessionAutoCloseProvider.notifier).ekranaGirildi(sessionId);
 
     // Firestore'daki kalıcı kayıttan SONRA, ESP32'nin izleyeceği canlı
     // komutu Realtime Database'e yazıyoruz. Gerçek donanım henüz yokken
