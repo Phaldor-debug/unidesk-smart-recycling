@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/redemption.dart';
 import '../providers/rewards_providers.dart';
 
@@ -20,6 +22,7 @@ class _StaffVerifyPageState extends ConsumerState<StaffVerifyPage> {
   Redemption? _found;
   bool _isLoading = false;
   String? _message;
+  bool _basarili = false;
 
   @override
   void dispose() {
@@ -35,6 +38,7 @@ class _StaffVerifyPageState extends ConsumerState<StaffVerifyPage> {
       _isLoading = true;
       _found = null;
       _message = null;
+      _basarili = false;
     });
 
     final result = await ref.read(findRedemptionByCodeProvider).call(code);
@@ -42,7 +46,9 @@ class _StaffVerifyPageState extends ConsumerState<StaffVerifyPage> {
     setState(() {
       _isLoading = false;
       _found = result;
-      _message = result == null ? 'Aktif bir hak bulunamadı (yanlış kod veya zaten kullanılmış).' : null;
+      _message = result == null
+          ? 'Bu koda ait kullanılabilir bir hak yok. Kod yanlış olabilir ya da daha önce kullanılmış olabilir.'
+          : null;
     });
   }
 
@@ -53,6 +59,7 @@ class _StaffVerifyPageState extends ConsumerState<StaffVerifyPage> {
     await ref.read(markRedemptionUsedProvider).call(redemption.id);
 
     setState(() {
+      _basarili = true;
       _message = '"${redemption.rewardTitle}" kullanıldı olarak işaretlendi.';
       _found = null;
       _codeController.clear();
@@ -63,70 +70,129 @@ class _StaffVerifyPageState extends ConsumerState<StaffVerifyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Yemekhane Paneli')),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _codeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Öğrencinin söylediği 6 haneli kod'),
+        children: [
+          Text(
+            'Öğrencinin söylediği 6 haneli kodu gir ve doğrula.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _codeController,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            maxLength: 6,
+            // Kodlar yalnızca rakamdan oluşuyor; harf girişini baştan
+            // engellemek personelin hata yapmasını önlüyor.
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 8,
             ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: _isLoading ? null : _search,
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Sorgula'),
+            decoration: const InputDecoration(
+              hintText: '••••••',
+              counterText: '',
             ),
-            const SizedBox(height: 24),
-            if (_found != null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    // ListTile'ın title+subtitle+trailing'i tek satıra sıkıştırma
-                    // davranışı, uzun buton metniyle (dar telefon ekranlarında)
-                    // üst üste binmeye sebep oluyordu. Bunun yerine bilgi üstte,
-                    // buton ALTTA ve TAM GENİŞLİKTE — hiçbir ekran genişliğinde
-                    // sıkışmaz.
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.check_circle_outline, color: Colors.green),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(_found!.rewardTitle,
-                                    style: Theme.of(context).textTheme.titleMedium),
-                                const Text('Aktif — kullanılabilir'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _markUsed,
-                        child: const Text('Kullanıldı Olarak İşaretle'),
-                      ),
-                    ],
-                  ),
+            onSubmitted: (_) => _search(),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _isLoading ? null : _search,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Sorgula'),
+          ),
+          const SizedBox(height: 28),
+          if (_found != null) _GecerliHakKarti(redemption: _found!, onKullan: _markUsed),
+          if (_message != null)
+            _SonucMesaji(mesaj: _message!, basarili: _basarili),
+        ],
+      ),
+    );
+  }
+}
+
+class _GecerliHakKarti extends StatelessWidget {
+  const _GecerliHakKarti({required this.redemption, required this.onKullan});
+  final Redemption redemption;
+  final VoidCallback onKullan;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.green.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.green.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.verified_rounded, color: AppColors.green, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      redemption.rewardTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Geçerli — kullanılabilir',
+                      style: TextStyle(color: AppColors.green, fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ),
               ),
-            if (_message != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(_message!, textAlign: TextAlign.center),
-              ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          // Buton tam genişlikte ve altta: uzun metinli butonu satırın
+          // sağına sıkıştırmak dar ekranlarda taşmaya yol açıyordu.
+          FilledButton(
+            onPressed: onKullan,
+            child: const Text('Kullanıldı Olarak İşaretle'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SonucMesaji extends StatelessWidget {
+  const _SonucMesaji({required this.mesaj, required this.basarili});
+  final String mesaj;
+  final bool basarili;
+
+  @override
+  Widget build(BuildContext context) {
+    final renk = basarili ? AppColors.green : Theme.of(context).colorScheme.error;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: renk.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            basarili ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+            color: renk,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(mesaj)),
+        ],
       ),
     );
   }
