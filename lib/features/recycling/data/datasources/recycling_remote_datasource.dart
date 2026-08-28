@@ -106,10 +106,42 @@ class RecyclingRemoteDataSource {
       if (fresh.pointsClaimed) return; // Güvenlik kilidi: ikinci çağrı hiçbir şey yapmaz.
 
       final userSnap = await tx.get(userRef);
+      final userData = userSnap.data() ?? const <String, dynamic>{};
       final kazanilan = fresh.pointsEarned;
+      final adet = fresh.depositedCount;
 
-      // Harcanabilir bakiye: ödül alınca düşer.
-      tx.update(userRef, {'points': FieldValue.increment(kazanilan)});
+      // --- Seri (streak) hesabı ---
+      // Aynı gün tekrar atarsa seri değişmez; ertesi gün atarsa artar;
+      // bir gün atlarsa baştan başlar.
+      final bugun = gunKimligi();
+      final sonGun = userData['lastThrowDay'] as String?;
+      final oncekiSeri = userData['currentStreak'] as int? ?? 0;
+      final oncekiEnIyiOturum = userData['bestSessionCount'] as int? ?? 0;
+      final int yeniSeri;
+      if (sonGun == null) {
+        yeniSeri = 1;
+      } else if (sonGun == bugun) {
+        yeniSeri = oncekiSeri == 0 ? 1 : oncekiSeri;
+      } else if (gunFarki(sonGun, bugun) == 1) {
+        yeniSeri = oncekiSeri + 1;
+      } else {
+        yeniSeri = 1;
+      }
+
+      // Harcanabilir bakiye + rozet koşullarının dayandığı sayaçlar.
+      // Bunlar kullanıcı belgesinde birikiyor; rozet kontrolü sonradan
+      // bu alanları okuyup hangi rozetlerin hak edildiğine bakacak.
+      tx.update(userRef, {
+        'points': FieldValue.increment(kazanilan),
+        'totalItems': FieldValue.increment(adet),
+        'itemsByType.${fresh.wasteType.id}': FieldValue.increment(adet),
+        'currentStreak': yeniSeri,
+        'lastThrowDay': bugun,
+        // Rozet koşulu "tek seferde 5+ atık" için: EN YÜKSEK tek oturum
+        // sayısı. Doğrudan atamak, daha küçük bir oturumda rekoru
+        // silerdi — bu yüzden büyük olanı koruyoruz.
+        'bestSessionCount': adet > oncekiEnIyiOturum ? adet : oncekiEnIyiOturum,
+      });
 
       // Sıralama skoru: aya özel kayıtta birikir, ödül harcaması bunu
       // düşürmez. merge:true + increment sayesinde kayıt yoksa oluşur,

@@ -16,6 +16,22 @@ String oncekiDonem([DateTime? now]) {
   return _donem(DateTime(t.year, t.month, 0));
 }
 
+/// Günün kimliği: "2026-08-28". Seri (streak) hesabı için gün
+/// karşılaştırmasını saat farkından bağımsız yapar.
+String gunKimligi([DateTime? now]) {
+  final t = now ?? DateTime.now();
+  return '${t.year}-${t.month.toString().padLeft(2, '0')}-'
+      '${t.day.toString().padLeft(2, '0')}';
+}
+
+/// İki gün kimliği arasındaki fark (gün). Seri kopmuş mu, ona bakarız.
+int gunFarki(String eski, String yeni) {
+  final a = DateTime.tryParse(eski);
+  final b = DateTime.tryParse(yeni);
+  if (a == null || b == null) return 999;
+  return b.difference(a).inDays;
+}
+
 String _donem(DateTime t) => '${t.year}-${t.month.toString().padLeft(2, '0')}';
 
 /// Dönem kimliğini insan okunur hale getirir: "2026-08" -> "Ağustos 2026".
