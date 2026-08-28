@@ -127,10 +127,14 @@ class HomePage extends ConsumerWidget {
   }
 
   /// Geriye dönüldüğünde hâlâ devam eden bir oturum varsa bitirir.
+  ///
+  /// `gerekiyorsaKapat` kullanıyoruz, `ekrandanCikildi` değil: ikincisi
+  /// koşulsuz kapatıyor ve o sırada ekranda AÇIK olan yeni bir oturumu
+  /// da kapatabiliyordu (kullanıcı tür seçer seçmez "+0 puan" ekranı).
   void _acikOturumuKapat(WidgetRef ref) {
     final ongoing = ref.read(ongoingSessionProvider).value;
     if (ongoing == null) return;
-    ref.read(sessionAutoCloseProvider.notifier).ekrandanCikildi(ongoing.id);
+    ref.read(sessionAutoCloseProvider.notifier).gerekiyorsaKapat(ongoing.id);
   }
 }
 

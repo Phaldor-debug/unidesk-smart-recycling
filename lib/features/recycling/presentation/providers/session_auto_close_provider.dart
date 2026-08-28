@@ -54,27 +54,38 @@ class SessionAutoClose extends Notifier<void> {
     _kapat(sessionId);
   }
 
+  /// Son kapatma hatası. Sessiz başarısızlık "neden puanım gelmedi"
+  /// sorusunu cevapsız bırakıyordu; ekranlar bunu okuyup bildirebilir.
+  Object? sonHata;
+
   Future<void> _kapat(String sessionId) async {
     if (_kapatiliyor.contains(sessionId)) return;
     _kapatiliyor.add(sessionId);
 
     final repository = ref.read(recyclingRepositoryProvider);
     try {
+      debugPrint('[oturum] kapatiliyor: $sessionId');
       final oturum = await repository.watchSession(sessionId).first;
       // Bu arada tamamlanmışsa dokunma.
-      if (oturum.status == SessionStatus.completed) return;
+      if (oturum.status == SessionStatus.completed) {
+        debugPrint('[oturum] zaten tamamlanmis: $sessionId');
+        return;
+      }
 
       await repository.updateStatus(sessionId, SessionStatus.completed);
       // Puanı da burada yazıyoruz: ekran kapalı olduğu için normalde
       // puanı ekleyen dinleyici çalışmıyor. claimPoints zaten taze
       // veriyi okuyup tek seferlik davranıyor, iki kez yazma riski yok.
       await repository.claimPoints(oturum);
+      sonHata = null;
+      debugPrint('[oturum] kapatildi: $sessionId '
+          '(${oturum.depositedCount} adet, ${oturum.pointsEarned} puan)');
     } catch (hata, iz) {
-      // Ağ hatası vb. Oturum askıda kalır; kullanıcı ana sayfadaki
-      // "devam eden işlem" uyarısından tekrar girip bitirebilir.
-      // Sessizce yutmuyoruz: bu hata gerçekten olursa geliştirme
-      // sırasında görünmesi lazım, yoksa sebebi anlaşılmaz.
-      debugPrint('Oturum kapatılamadı ($sessionId): $hata\n$iz');
+      // Oturum askıda kalır; kullanıcı ana sayfadaki "devam eden işlem"
+      // uyarısından tekrar girip bitirebilir.
+      sonHata = hata;
+      debugPrint('[oturum] KAPATILAMADI ($sessionId): $hata');
+      debugPrint(iz.toString());
     } finally {
       _kapatiliyor.remove(sessionId);
     }
