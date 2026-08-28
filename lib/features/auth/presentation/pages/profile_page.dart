@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../badges/presentation/pages/badges_page.dart';
+import '../../../badges/presentation/providers/badge_providers.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../../leaderboard/presentation/providers/leaderboard_providers.dart';
 import '../../../rewards/presentation/pages/my_codes_page.dart';
@@ -27,6 +29,7 @@ class ProfilePage extends ConsumerWidget {
         ? (ref.watch(myActiveRedemptionsProvider).value?.length ?? 0)
         : 0;
     final siralama = ref.watch(leaderboardProvider).value;
+    final rozetSayisi = ref.watch(badgeCountProvider);
 
     ref.listen(authControllerProvider, (previous, next) {
       if (next is AsyncError) {
@@ -93,6 +96,15 @@ class ProfilePage extends ConsumerWidget {
                               etiket: 'Aylık Sıra',
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatKutusu(
+                              icon: Icons.workspace_premium_rounded,
+                              renk: Color(0xFF7C3AED),
+                              deger: '$rozetSayisi',
+                              etiket: 'Rozet',
+                            ),
+                          ),
                           if (AppConstants.odulSistemiAcik) ...[
                             const SizedBox(width: 12),
                             Expanded(
@@ -109,6 +121,14 @@ class ProfilePage extends ConsumerWidget {
                       const SizedBox(height: 20),
                       _MenuKarti(
                         children: [
+                          _MenuSatiri(
+                            icon: Icons.workspace_premium_rounded,
+                            baslik: 'Rozetlerim',
+                            altBaslik: '$rozetSayisi rozet kazandın',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const BadgesPage()),
+                            ),
+                          ),
                           _MenuSatiri(
                             icon: Icons.leaderboard_rounded,
                             baslik: 'Sıralama',

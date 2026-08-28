@@ -116,7 +116,6 @@ class RecyclingRemoteDataSource {
       final bugun = gunKimligi();
       final sonGun = userData['lastThrowDay'] as String?;
       final oncekiSeri = userData['currentStreak'] as int? ?? 0;
-      final oncekiEnIyiOturum = userData['bestSessionCount'] as int? ?? 0;
       final int yeniSeri;
       if (sonGun == null) {
         yeniSeri = 1;
@@ -128,6 +127,21 @@ class RecyclingRemoteDataSource {
         yeniSeri = 1;
       }
 
+      // --- Bu ay kaç FARKLI günde atık atıldı ---
+      // "Dönem Boyu" rozeti üst üste değil, dağınık da olsa düzenli
+      // kullanımı ödüllendiriyor. Ay değişince sayaç sıfırlanır.
+      final donemDegisti = (userData['activeDaysPeriod'] as String?) != donem;
+      final yeniGunMu = sonGun != bugun;
+      final oncekiAktifGun = userData['activeDaysCount'] as int? ?? 0;
+      final int aktifGun;
+      if (donemDegisti) {
+        aktifGun = 1;
+      } else if (yeniGunMu) {
+        aktifGun = oncekiAktifGun + 1;
+      } else {
+        aktifGun = oncekiAktifGun == 0 ? 1 : oncekiAktifGun;
+      }
+
       // Harcanabilir bakiye + rozet koşullarının dayandığı sayaçlar.
       // Bunlar kullanıcı belgesinde birikiyor; rozet kontrolü sonradan
       // bu alanları okuyup hangi rozetlerin hak edildiğine bakacak.
@@ -137,10 +151,8 @@ class RecyclingRemoteDataSource {
         'itemsByType.${fresh.wasteType.id}': FieldValue.increment(adet),
         'currentStreak': yeniSeri,
         'lastThrowDay': bugun,
-        // Rozet koşulu "tek seferde 5+ atık" için: EN YÜKSEK tek oturum
-        // sayısı. Doğrudan atamak, daha küçük bir oturumda rekoru
-        // silerdi — bu yüzden büyük olanı koruyoruz.
-        'bestSessionCount': adet > oncekiEnIyiOturum ? adet : oncekiEnIyiOturum,
+        'activeDaysCount': aktifGun,
+        'activeDaysPeriod': donem,
       });
 
       // Sıralama skoru: aya özel kayıtta birikir, ödül harcaması bunu

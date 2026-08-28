@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/recycling_session.dart';
+import '../../../badges/presentation/providers/badge_providers.dart';
 import 'recycling_providers.dart';
 
 /// Yarıda bırakılan oturumu kapatır.
@@ -73,6 +74,8 @@ class SessionAutoClose extends Notifier<void> {
       // puanı ekleyen dinleyici çalışmıyor. claimPoints zaten taze
       // veriyi okuyup tek seferlik davranıyor, iki kez yazma riski yok.
       await repository.claimPoints(oturum);
+      // Puan yazıldı; hak edilen rozet var mı?
+      await ref.read(badgeCheckerProvider.notifier).kontrolEt();
       _log('kapatildi: $sessionId '
           '(${oturum.depositedCount} adet, ${oturum.pointsEarned} puan)');
     } catch (hata, iz) {

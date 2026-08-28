@@ -96,6 +96,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Uygulama geneli sayaçlar (şu an sadece toplam kayıt sayısı).
+    // Kayıt sırasında herkesin artırabilmesi gerekiyor; içinde kişisel
+    // veri yok, en kötü ihtimalle sayaç şişer ve "Öncü" rozeti hak
+    // edilmeden verilmez olur — kabul edilebilir bir risk.
+    match /stats/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
     // Ödül kataloğu: giriş yapmış herkes okuyabilir (Ödüller ekranı için).
     // YAZMA YOK — kataloğu SADECE Firebase Console'dan (admin yetkisiyle,
     // bu kurallardan muaf olarak) düzenliyoruz. İstemciden biri ödül

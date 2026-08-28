@@ -30,4 +30,9 @@ class FirestorePaths {
   /// (dolayısıyla kazananlar) kaybolurdu. Aya özel kayıtla hiçbir ay
   /// silinmiyor, geçmiş aylar sonradan da sorgulanabiliyor.
   static const String monthlyScores = 'monthly_scores';
+
+  /// Uygulama geneli sayaçlar (ör. toplam kayıt sayısı).
+  /// Tek belge: stats/counters
+  static const String stats = 'stats';
+  static const String countersDoc = 'counters';
 }

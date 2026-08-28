@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../features/auth/presentation/pages/profile_page.dart';
+import '../../features/badges/presentation/widgets/badge_celebration.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../features/rewards/presentation/pages/rewards_page.dart';
@@ -73,12 +74,17 @@ class _MainShellState extends ConsumerState<MainShell> {
       ),
     ];
 
-    return Scaffold(
-      body: IndexedStack(index: _index, children: sayfalar),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: hedefler,
+    // Rozet kutlaması iskelet seviyesinde dinleniyor: rozet hangi ekranda
+    // kazanılırsa kazanılsın (arka planda kapanan oturum dahil) pencere
+    // açılabilsin diye.
+    return BadgeCelebrationListener(
+      child: Scaffold(
+        body: IndexedStack(index: _index, children: sayfalar),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: (i) => setState(() => _index = i),
+          destinations: hedefler,
+        ),
       ),
     );
   }

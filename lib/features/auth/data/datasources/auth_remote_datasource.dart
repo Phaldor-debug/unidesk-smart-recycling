@@ -15,6 +15,10 @@ class AuthRemoteDataSource {
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection(FirestorePaths.users);
 
+  DocumentReference<Map<String, dynamic>> get _countersDoc => _firestore
+      .collection(FirestorePaths.stats)
+      .doc(FirestorePaths.countersDoc);
+
   Future<AppUserModel> signUp({
     required String email,
     required String password,
@@ -34,10 +38,24 @@ class AuthRemoteDataSource {
 
       final model = AppUserModel.initial(uid: uid, displayName: displayName);
 
-      // 3) Firestore'da bu kullanıcının puan kaydını 0 ile başlat.
+      // 3) Kaçıncı kayıt olduğunu belirle ("Öncü" rozeti için).
+      //    Transaction: iki kişi aynı anda kaydolursa ikisine de aynı
+      //    sıra numarası verilmesin.
+      final sira = await _firestore.runTransaction<int>((tx) async {
+        final snap = await tx.get(_countersDoc);
+        final mevcut = (snap.data()?['userCount'] as int?) ?? 0;
+        final yeni = mevcut + 1;
+        tx.set(_countersDoc, {'userCount': yeni}, SetOptions(merge: true));
+        return yeni;
+      });
+
+      // 4) Firestore'da bu kullanıcının puan kaydını 0 ile başlat.
       //    .set() ile doc'un id'sini uid yapıyoruz ki her kullanıcının
       //    tam olarak bir kaydı olsun, uid'den kolayca bulunabilsin.
-      await _usersCollection.doc(uid).set(model.toMap());
+      await _usersCollection.doc(uid).set({
+        ...model.toMap(),
+        'registrationNo': sira,
+      });
 
       // Kayıt biter bitmez doğrulama bağlantısını yolla — kullanıcı
       // ayrıca bir şey yapmak zorunda kalmasın.

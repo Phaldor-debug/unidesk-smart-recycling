@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/recycling_session.dart';
 import '../../domain/entities/waste_type.dart'; // WasteTypeX (.label, .pointsPerItem) için
+import '../../../badges/presentation/providers/badge_providers.dart';
 import '../providers/recycling_providers.dart';
 import '../providers/session_auto_close_provider.dart';
 import '../utils/waste_type_ui.dart';
@@ -68,7 +69,11 @@ class _ActiveSessionPageState extends ConsumerState<ActiveSessionPage> {
       if (session != null &&
           session.status == SessionStatus.completed &&
           !session.pointsClaimed) {
-        ref.read(claimSessionPointsProvider).call(session);
+        // Puan yazıldıktan SONRA rozet kontrolü: yeni istatistiklerle
+        // hak edilen rozet var mı diye bakar.
+        ref.read(claimSessionPointsProvider).call(session).then(
+              (_) => ref.read(badgeCheckerProvider.notifier).kontrolEt(),
+            );
       }
     });
 
