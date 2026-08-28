@@ -39,8 +39,8 @@ class EmailVerificationBanner extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Puan kazanabilirsin, ancak ödül kullanabilmen için okul '
-            'e-postana gönderdiğimiz bağlantıya tıklaman gerekiyor.',
+            'Puan kazanmaya devam edebilirsin, ancak ödül kazanabilmen için '
+            'okul e-postana gönderdiğimiz bağlantıya tıklaman gerekiyor.',
             style: TextStyle(fontSize: 13),
           ),
           const SizedBox(height: 10),

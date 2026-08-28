@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../../leaderboard/presentation/providers/leaderboard_providers.dart';
@@ -22,7 +23,9 @@ class ProfilePage extends ConsumerWidget {
     // açık olduğu için) — doğrudan Firebase Auth'tan okuyoruz.
     final authUser = ref.watch(authStateProvider).value;
     final dogrulandi = ref.watch(emailVerificationProvider).value ?? false;
-    final kodSayisi = ref.watch(myActiveRedemptionsProvider).value?.length ?? 0;
+    final kodSayisi = AppConstants.odulSistemiAcik
+        ? (ref.watch(myActiveRedemptionsProvider).value?.length ?? 0)
+        : 0;
     final siralama = ref.watch(leaderboardProvider).value;
 
     ref.listen(authControllerProvider, (previous, next) {
@@ -90,15 +93,17 @@ class ProfilePage extends ConsumerWidget {
                               etiket: 'Aylık Sıra',
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatKutusu(
-                              icon: Icons.confirmation_number_outlined,
-                              renk: const Color(0xFF7C3AED),
-                              deger: '$kodSayisi',
-                              etiket: 'Kod',
+                          if (AppConstants.odulSistemiAcik) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _StatKutusu(
+                                icon: Icons.confirmation_number_outlined,
+                                renk: const Color(0xFF7C3AED),
+                                deger: '$kodSayisi',
+                                etiket: 'Kod',
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -112,14 +117,17 @@ class ProfilePage extends ConsumerWidget {
                               MaterialPageRoute(builder: (_) => const LeaderboardPage()),
                             ),
                           ),
-                          _MenuSatiri(
-                            icon: Icons.confirmation_number_outlined,
-                            baslik: 'Kodlarım',
-                            altBaslik: 'Kullanılmamış ödül kodların',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const MyCodesPage()),
+                          // Ödül sistemi kapalıyken bu giriş de gizleniyor,
+                          // bkz. AppConstants.odulSistemiAcik.
+                          if (AppConstants.odulSistemiAcik)
+                            _MenuSatiri(
+                              icon: Icons.confirmation_number_outlined,
+                              baslik: 'Kodlarım',
+                              altBaslik: 'Kullanılmamış ödül kodların',
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const MyCodesPage()),
+                              ),
                             ),
-                          ),
                           _MenuSatiri(
                             icon: Icons.history_rounded,
                             baslik: 'Puan geçmişi',

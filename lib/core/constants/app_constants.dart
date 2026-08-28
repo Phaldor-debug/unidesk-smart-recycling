@@ -6,6 +6,17 @@ class AppConstants {
   /// yerine taranan değer kullanılacak, başka hiçbir yer değişmeyecek.
   static const String demoBinId = 'demo-bin-01';
 
+  /// Puan harcayarak ödül kodu alma sistemi arayüzde görünsün mü?
+  ///
+  /// Şu an KAPALI. Ödüllendirme, puan harcamaya değil "ayın ilk 3'ü"
+  /// sıralamasına dayanıyor — yemekhane entegrasyonu operasyonel olarak
+  /// zor olduğu için bu yön seçildi.
+  ///
+  /// Sistemin kendisi (ödül kataloğu, kod üretme, yemekhane doğrulama,
+  /// güvenlik kuralları, veritabanı) BOZULMADAN duruyor; sadece arayüzden
+  /// gizlendi. `true` yapmak sekmeyi ve menü girişlerini geri getirir.
+  static const bool odulSistemiAcik = false;
+
   /// Kayıt olabilecek e-posta uzantıları (öğrenci doğrulaması).
   ///
   /// BOŞ bırakılırsa kontrol yapılmaz, herkes kayıt olabilir.
