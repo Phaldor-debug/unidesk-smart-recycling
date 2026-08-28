@@ -55,7 +55,10 @@ class HomePage extends ConsumerWidget {
             const SizedBox(height: 20),
             const EmailVerificationBanner(),
             if (ongoing != null) ...[
-              _DevamEdenOturumUyarisi(session: ongoing),
+              _DevamEdenOturumUyarisi(
+                session: ongoing,
+                onGeriDonuldu: () => _acikOturumuKapat(ref),
+              ),
               const SizedBox(height: 14),
             ],
             const PointsBalanceCard(),
@@ -111,9 +114,23 @@ class HomePage extends ConsumerWidget {
     if (!context.mounted) return;
 
     // 2) binId elimizde — şimdi atık türü seçim ekranına geç.
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => SelectWastePage(binId: binId)),
     );
+
+    // Kullanıcı buraya döndüyse akıştan tamamen çıkmış demektir.
+    // Ekranın dispose'una ek olarak burada da kapatıyoruz: tek bir
+    // tetikleyiciye bağlı kalmak, o tetikleyici çalışmazsa oturumun
+    // askıda kalmasına yol açıyordu.
+    if (!context.mounted) return;
+    _acikOturumuKapat(ref);
+  }
+
+  /// Geriye dönüldüğünde hâlâ devam eden bir oturum varsa bitirir.
+  void _acikOturumuKapat(WidgetRef ref) {
+    final ongoing = ref.read(ongoingSessionProvider).value;
+    if (ongoing == null) return;
+    ref.read(sessionAutoCloseProvider.notifier).ekrandanCikildi(ongoing.id);
   }
 }
 
@@ -164,8 +181,9 @@ class _BolumBasligi extends StatelessWidget {
 
 /// Yarıda kalmış bir atık atma işlemi olduğunda beliren uyarı.
 class _DevamEdenOturumUyarisi extends StatelessWidget {
-  const _DevamEdenOturumUyarisi({required this.session});
+  const _DevamEdenOturumUyarisi({required this.session, required this.onGeriDonuldu});
   final RecyclingSession session;
+  final VoidCallback onGeriDonuldu;
 
   @override
   Widget build(BuildContext context) {
@@ -176,8 +194,8 @@ class _DevamEdenOturumUyarisi extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            Navigator.of(context).push(
+          onTap: () async {
+            await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => ActiveSessionPage(
                   sessionId: session.id,
@@ -185,6 +203,8 @@ class _DevamEdenOturumUyarisi extends StatelessWidget {
                 ),
               ),
             );
+            // Geri dönüldüyse oturum bitmiş sayılır.
+            onGeriDonuldu();
           },
           child: Padding(
             padding: const EdgeInsets.all(16),

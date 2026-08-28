@@ -26,18 +26,29 @@ class ActiveSessionPage extends ConsumerStatefulWidget {
 }
 
 class _ActiveSessionPageState extends ConsumerState<ActiveSessionPage> {
+  /// Notifier'ı BİR KEZ alıp saklıyoruz.
+  ///
+  /// dispose() içinde `ref.read(...)` çağırmak Riverpod'da hata fırlatıyor
+  /// ("Using ref when a widget is about to or has been unmounted is
+  /// unsafe"). Bu yüzden ekrandan çıkış bildirimi hiç ulaşmıyordu:
+  /// oturum "ekranda açık" işaretli kalıyor, ana sayfadaki kapatıcı da
+  /// ona dokunmuyordu — oturum sonsuza kadar askıda kalıyordu.
+  /// Kütüphanenin önerdiği çözüm: state alanında sakla.
+  late final SessionAutoClose _oturumKapatici;
+
   @override
   void initState() {
     super.initState();
+    _oturumKapatici = ref.read(sessionAutoCloseProvider.notifier);
     // Ekran açık olduğu sürece otomatik kapatma devre dışı.
-    ref.read(sessionAutoCloseProvider.notifier).ekranaGirildi(widget.sessionId);
+    _oturumKapatici.ekranaGirildi(widget.sessionId);
   }
 
   @override
   void dispose() {
-    // Kullanıcı ekrandan çıktı: oturum hâlâ yarım kalırsa belirli bir
-    // süre sonra otomatik kapansın (ve o ana kadarki puan yazılsın).
-    ref.read(sessionAutoCloseProvider.notifier).ekrandanCikildi(widget.sessionId);
+    // Kullanıcı ekrandan çıktı: oturumu hemen bitir, o ana kadarki
+    // puanı yaz.
+    _oturumKapatici.ekrandanCikildi(widget.sessionId);
     super.dispose();
   }
 
