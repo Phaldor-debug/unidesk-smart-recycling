@@ -19,16 +19,25 @@ class RecyclingRemoteDataSource {
   CollectionReference<Map<String, dynamic>> get _monthlyScores =>
       _firestore.collection(FirestorePaths.monthlyScores);
 
-  Future<String> startSession({
+  /// Yazmadan ÖNCE bir belge kimliği üretir.
+  ///
+  /// Neden gerekli: `.add()` ile yazıp kimliği sonradan öğrenmek yarışa
+  /// yol açıyordu. Firestore, yazma sunucuya ulaşmadan yerel bir anlık
+  /// görüntü yayınlıyor (gecikme telafisi); ana sayfadaki temizleyici bu
+  /// bildirimi görüp oturumu "sahipsiz" sanarak daha doğar doğmaz
+  /// kapatıyordu. Kimliği önce üretince oturumu korumaya alıp sonra
+  /// yazabiliyoruz.
+  String yeniOturumKimligi() => _sessions.doc().id;
+
+  Future<void> startSession({
+    required String sessionId,
     required String uid,
     required String binId,
     required WasteType wasteType,
-  }) async {
-    // .add(): Firestore'a yeni bir belge ekler ve rastgele bir id üretir.
-    final docRef = await _sessions.add(
-      RecyclingSessionModel.initialMap(uid: uid, binId: binId, wasteType: wasteType),
-    );
-    return docRef.id;
+  }) {
+    return _sessions.doc(sessionId).set(
+          RecyclingSessionModel.initialMap(uid: uid, binId: binId, wasteType: wasteType),
+        );
   }
 
   Stream<RecyclingSessionModel> watchSession(String sessionId) {

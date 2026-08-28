@@ -20,16 +20,24 @@ class SelectWastePage extends ConsumerWidget {
     final uid = ref.read(authStateProvider).value?.uid;
     if (uid == null) return; // AuthGate zaten girişsiz buraya gelmeyi engeller.
 
-    final sessionId = await ref.read(startRecyclingSessionProvider).call(
-          uid: uid,
-          binId: binId,
-          wasteType: type,
-        );
+    final baslat = ref.read(startRecyclingSessionProvider);
 
-    // Oturumu HEMEN korumaya alıyoruz. Aksi halde Firestore'dan gelen
-    // "devam eden oturum" bildirimi ana sayfaya, kullanıcı daha atma
-    // ekranına varmadan ulaşıp oturumu kapatabilirdi.
+    // SIRA ÖNEMLİ: kimliği önce üret, korumaya al, SONRA yaz.
+    //
+    // Firestore yazma sunucuya ulaşmadan yerel bir anlık görüntü
+    // yayınlıyor (gecikme telafisi). Kimliği yazmadan sonra öğrenseydik,
+    // o bildirim ana sayfadaki temizleyiciye önce ulaşır, oturumu
+    // sahipsiz sanıp daha doğar doğmaz kapatırdı — kullanıcı tür seçer
+    // seçmez "+0 puan" ekranını görüyordu.
+    final sessionId = baslat.yeniKimlik();
     ref.read(sessionAutoCloseProvider.notifier).ekranaGirildi(sessionId);
+
+    await baslat.call(
+      sessionId: sessionId,
+      uid: uid,
+      binId: binId,
+      wasteType: type,
+    );
 
     // Firestore'daki kalıcı kayıttan SONRA, ESP32'nin izleyeceği canlı
     // komutu Realtime Database'e yazıyoruz. Gerçek donanım henüz yokken

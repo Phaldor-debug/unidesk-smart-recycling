@@ -3,9 +3,14 @@ import '../entities/waste_type.dart';
 
 /// Recycling ile ilgili sözleşme. Firebase'e dair bilgi domain'e sızmaz.
 abstract class RecyclingRepository {
-  /// Yeni bir oturum başlatır (kullanıcı tür seçti). Oluşan oturumun
-  /// id'sini döner ki ekran onu izlemeye başlayabilsin.
-  Future<String> startSession({
+  /// Oturum yazılmadan ÖNCE kimliğini üretir. Çağıran taraf bu kimlikle
+  /// oturumu korumaya alıp sonra startSession'ı çağırır — aksi halde
+  /// oturum, oluşturulduğu anda sahipsiz sanılıp kapatılabiliyor.
+  String yeniOturumKimligi();
+
+  /// Yeni bir oturum başlatır (kullanıcı tür seçti).
+  Future<void> startSession({
+    required String sessionId,
     required String uid,
     required String binId,
     required WasteType wasteType,

@@ -8,12 +8,21 @@ class RecyclingRepositoryImpl implements RecyclingRepository {
   final RecyclingRemoteDataSource _remote;
 
   @override
-  Future<String> startSession({
+  String yeniOturumKimligi() => _remote.yeniOturumKimligi();
+
+  @override
+  Future<void> startSession({
+    required String sessionId,
     required String uid,
     required String binId,
     required WasteType wasteType,
   }) {
-    return _remote.startSession(uid: uid, binId: binId, wasteType: wasteType);
+    return _remote.startSession(
+      sessionId: sessionId,
+      uid: uid,
+      binId: binId,
+      wasteType: wasteType,
+    );
   }
 
   @override
