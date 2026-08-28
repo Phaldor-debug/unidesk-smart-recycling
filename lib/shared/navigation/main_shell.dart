@@ -5,6 +5,7 @@ import '../../core/constants/app_constants.dart';
 import '../../features/auth/presentation/pages/profile_page.dart';
 import '../../features/badges/presentation/widgets/badge_celebration.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/leaderboard/presentation/providers/notification_scheduler.dart';
 import '../../features/leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../features/rewards/presentation/pages/rewards_page.dart';
 import '../../features/rewards/presentation/providers/rewards_providers.dart';
@@ -23,6 +24,16 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Bildirimleri uygulama açılışında bir kez kur. Kurulum ağ isteği
+    // içerdiği için ilk kareden sonraya bırakıyoruz — açılış takılmasın.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(notificationSchedulerProvider.notifier).kur();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

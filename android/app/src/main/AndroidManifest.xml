@@ -1,6 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android 13+ bildirim izni. Kullanıcıya uygulama açılışında
+         sorulur; reddederse uygulama normal çalışmaya devam eder. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Zamanlanmış hatırlatmanın cihaz yeniden başlatıldıktan sonra da
+         kurulu kalması için. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
     <application
-        android:label="unidesk_geri_donusum"
+        android:label="Ünidesk"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
