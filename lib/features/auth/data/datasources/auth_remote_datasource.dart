@@ -32,16 +32,16 @@ class AuthRemoteDataSource {
       //    yerlerde (ör. Auth konsolu) kullanıcının kim olduğu görünsün.
       await credential.user!.updateDisplayName(displayName);
 
-      final model = AppUserModel.initial(
-        uid: uid,
-        email: email,
-        displayName: displayName,
-      );
+      final model = AppUserModel.initial(uid: uid, displayName: displayName);
 
       // 3) Firestore'da bu kullanıcının puan kaydını 0 ile başlat.
       //    .set() ile doc'un id'sini uid yapıyoruz ki her kullanıcının
       //    tam olarak bir kaydı olsun, uid'den kolayca bulunabilsin.
       await _usersCollection.doc(uid).set(model.toMap());
+
+      // Kayıt biter bitmez doğrulama bağlantısını yolla — kullanıcı
+      // ayrıca bir şey yapmak zorunda kalmasın.
+      await credential.user!.sendEmailVerification();
 
       return model;
     } on FirebaseAuthException catch (e) {
@@ -68,7 +68,6 @@ class AuthRemoteDataSource {
         // Firestore kaydı bir sebeple yoksa (nadir), 0 puanla oluştur.
         final model = AppUserModel.initial(
           uid: uid,
-          email: email,
           displayName: credential.user!.displayName ?? '',
         );
         await _usersCollection.doc(uid).set(model.toMap());
@@ -88,10 +87,30 @@ class AuthRemoteDataSource {
       if (data == null) {
         // Belge henüz oluşmadıysa (nadir) boş bir profil döndür ki
         // ekran çökmesin.
-        return AppUserModel.initial(uid: uid, email: '', displayName: '');
+        return AppUserModel.initial(uid: uid, displayName: '');
       }
       return AppUserModel.fromMap(data);
     });
+  }
+
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    try {
+      await user.sendEmailVerification();
+    } on FirebaseAuthException catch (e) {
+      throw AppException.fromFirebaseAuth(e);
+    }
+  }
+
+  /// reload(): Firebase'in yerel kullanıcı kopyasını sunucudan tazeler.
+  /// Bu olmadan, kullanıcı e-postadaki bağlantıya tıklasa bile uygulama
+  /// hâlâ "doğrulanmamış" görür.
+  Future<bool> refreshEmailVerified() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    await user.reload();
+    return _auth.currentUser?.emailVerified ?? false;
   }
 
   Future<void> signOut() => _auth.signOut();

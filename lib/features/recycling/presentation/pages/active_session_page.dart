@@ -5,17 +5,40 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/recycling_session.dart';
 import '../../domain/entities/waste_type.dart'; // WasteTypeX (.label, .pointsPerItem) için
 import '../providers/recycling_providers.dart';
+import '../providers/session_auto_close_provider.dart';
 
 /// Bir oturumu CANLI izleyen ekran. ESP32 (şimdilik simülatör) durumu
 /// her değiştirdiğinde bu ekran KENDİLİĞİNDEN güncellenir — sayfayı
 /// yenilemeye gerek yok, StreamProvider bunu otomatik sağlıyor.
-class ActiveSessionPage extends ConsumerWidget {
+class ActiveSessionPage extends ConsumerStatefulWidget {
   const ActiveSessionPage({super.key, required this.sessionId, required this.binId});
   final String sessionId;
   final String binId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ActiveSessionPage> createState() => _ActiveSessionPageState();
+}
+
+class _ActiveSessionPageState extends ConsumerState<ActiveSessionPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Ekran açık olduğu sürece otomatik kapatma devre dışı.
+    ref.read(sessionAutoCloseProvider.notifier).ekranaGirildi(widget.sessionId);
+  }
+
+  @override
+  void dispose() {
+    // Kullanıcı ekrandan çıktı: oturum hâlâ yarım kalırsa belirli bir
+    // süre sonra otomatik kapansın (ve o ana kadarki puan yazılsın).
+    ref.read(sessionAutoCloseProvider.notifier).ekrandanCikildi(widget.sessionId);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sessionId = widget.sessionId;
+    final binId = widget.binId;
     final sessionAsync = ref.watch(activeSessionProvider(sessionId));
 
     // Oturum 'completed' durumuna geçtiği ve puan henüz eklenmediği anda,

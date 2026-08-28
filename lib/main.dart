@@ -14,15 +14,18 @@ import 'features/auth/presentation/providers/auth_providers.dart';
 import 'features/auth/presentation/providers/auth_controller.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/profile_page.dart';
+import 'features/auth/presentation/widgets/email_verification_banner.dart';
 import 'features/wallet/presentation/pages/history_page.dart';
 import 'features/wallet/presentation/widgets/points_balance_card.dart';
 import 'features/recycling/presentation/pages/active_session_page.dart';
 import 'features/recycling/presentation/pages/scan_bin_page.dart';
 import 'features/recycling/presentation/providers/recycling_providers.dart';
+import 'features/recycling/presentation/providers/session_auto_close_provider.dart';
 import 'features/recycling/domain/entities/recycling_session.dart';
 import 'features/recycling/domain/entities/waste_type.dart';
 import 'features/recycling/presentation/pages/select_waste_page.dart';
 import 'features/recycling/presentation/pages/show_bin_qr_page.dart';
+import 'features/leaderboard/presentation/pages/leaderboard_page.dart';
 import 'features/rewards/presentation/pages/rewards_page.dart';
 
 // main artık `async` çünkü Firebase başlatmayı `await` edeceğiz.
@@ -108,11 +111,23 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider).value;
     final ongoing = ref.watch(ongoingSessionProvider).value;
-    // Ad henüz yüklenmediyse ya da eski kayıtlarda boşsa e-postanın
-    // @ öncesini kullanıyoruz — karşılama satırı hiç boş kalmasın.
+
+    // Uygulama yeniden açıldığında geride kalmış oturum varsa (o sırada
+    // hiçbir ekran onu izlemiyor) otomatik kapatma sırasına al.
+    ref.listen(ongoingSessionProvider, (previous, next) {
+      final session = next.value;
+      if (session == null) return;
+      ref.read(sessionAutoCloseProvider.notifier).gerekiyorsaZamanla(session.id);
+    });
+    // Ad henüz yüklenmediyse ya da eski kayıtlarda boşsa, Firebase Auth
+    // profilindeki adı, o da yoksa e-postanın @ öncesini kullanıyoruz —
+    // karşılama satırı hiç boş kalmasın.
+    final authUser = ref.watch(authStateProvider).value;
     final gorunenAd = (user?.displayName.isNotEmpty ?? false)
         ? user!.displayName
-        : (user?.email.split('@').first ?? '');
+        : (authUser?.displayName?.isNotEmpty ?? false)
+            ? authUser!.displayName!
+            : (authUser?.email?.split('@').first ?? '');
 
     return Scaffold(
       appBar: AppBar(
@@ -124,6 +139,15 @@ class HomePage extends ConsumerWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const HistoryPage()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.leaderboard_rounded),
+            tooltip: 'Sıralama',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LeaderboardPage()),
               );
             },
           ),
@@ -150,6 +174,8 @@ class HomePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 4),
+          // Doğrulanmamış hesaplar ödül kullanamaz — uyarı en üstte.
+          const EmailVerificationBanner(),
           // Kullanıcı atma ekranından çıktıysa oturum askıda kalıyor.
           // Buradan geri dönebilsin — yoksa kapak açık kalır ve attığı
           // atıklar Firestore'a yansımaz.

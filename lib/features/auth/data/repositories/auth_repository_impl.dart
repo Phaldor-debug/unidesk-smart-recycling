@@ -32,6 +32,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Stream<AppUser> watchCurrentUser(String uid) => _remote.watchCurrentUser(uid);
 
   @override
+  Future<void> sendEmailVerification() => _remote.sendEmailVerification();
+
+  @override
+  Future<bool> refreshEmailVerified() => _remote.refreshEmailVerified();
+
+  @override
   Future<void> signOut() => _remote.signOut();
 
   @override

@@ -6,7 +6,6 @@ import '../../domain/entities/app_user.dart';
 class AppUserModel extends AppUser {
   const AppUserModel({
     required super.uid,
-    required super.email,
     required super.displayName,
     required super.points,
   });
@@ -14,22 +13,15 @@ class AppUserModel extends AppUser {
   /// Yeni kayıt olan bir kullanıcı için başlangıç durumu: 0 puan.
   factory AppUserModel.initial({
     required String uid,
-    required String email,
     required String displayName,
   }) {
-    return AppUserModel(
-      uid: uid,
-      email: email,
-      displayName: displayName,
-      points: 0,
-    );
+    return AppUserModel(uid: uid, displayName: displayName, points: 0);
   }
 
   /// Firestore'dan gelen Map'i AppUserModel'e çevirir.
   factory AppUserModel.fromMap(Map<String, dynamic> map) {
     return AppUserModel(
-      uid: map['uid'] as String,
-      email: map['email'] as String,
+      uid: map['uid'] as String? ?? '',
       // Bu alan eklenmeden önce kaydolmuş kullanıcılarda boş gelir.
       displayName: map['displayName'] as String? ?? '',
       points: map['points'] as int? ?? 0,
@@ -37,12 +29,8 @@ class AppUserModel extends AppUser {
   }
 
   /// Firestore'a yazarken kullanılacak Map.
+  /// E-posta bilerek yazılmıyor — bkz. AppUser sınıfındaki açıklama.
   Map<String, dynamic> toMap() {
-    return {
-      'uid': uid,
-      'email': email,
-      'displayName': displayName,
-      'points': points,
-    };
+    return {'uid': uid, 'displayName': displayName, 'points': points};
   }
 }
