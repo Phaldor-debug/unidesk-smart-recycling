@@ -7,6 +7,7 @@ import '../../domain/entities/waste_type.dart'; // WasteTypeX (.label, .pointsPe
 import '../providers/recycling_providers.dart';
 import '../providers/session_auto_close_provider.dart';
 import '../utils/waste_type_ui.dart';
+import '../widgets/lid_automation.dart';
 
 /// Bir oturumu CANLI izleyen ekran. ESP32 (şimdilik simülatör) durumu
 /// her değiştirdiğinde bu ekran KENDİLİĞİNDEN güncellenir — sayfayı
@@ -125,17 +126,22 @@ class _SessionScaffold extends StatelessWidget {
         title: Text(session.wasteType.label),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: bitti
-                    ? _TamamlandiGorunumu(session: session)
-                    : _SayacGorunumu(session: session),
+        // Kapak zamanlamasını LidAutomation yönetiyor: geri sayımı verir,
+        // debug'da firmware'in aç/kapat geçişlerini de taklit eder.
+        child: LidAutomation(
+          session: session,
+          child: (context, kalanSaniye) => Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: bitti
+                      ? _TamamlandiGorunumu(session: session)
+                      : _SayacGorunumu(session: session, kalanSaniye: kalanSaniye),
+                ),
               ),
-            ),
-            if (kDebugMode) _SimulatorPanel(session: session),
-          ],
+              if (kDebugMode) _SimulatorPanel(session: session),
+            ],
+          ),
         ),
       ),
     );
@@ -144,8 +150,11 @@ class _SessionScaffold extends StatelessWidget {
 
 /// Oturum sürerken: ortada büyük sayaç, altında durum mesajı.
 class _SayacGorunumu extends StatelessWidget {
-  const _SayacGorunumu({required this.session});
+  const _SayacGorunumu({required this.session, required this.kalanSaniye});
   final RecyclingSession session;
+
+  /// Kapak kapanmadan kalan süre. Kapak açık değilse null.
+  final int? kalanSaniye;
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +202,7 @@ class _SayacGorunumu extends StatelessWidget {
           style: TextStyle(color: Colors.white70, fontSize: 15),
         ),
         const SizedBox(height: 36),
-        _DurumSatiri(status: session.status),
+        _DurumSatiri(status: session.status, kalanSaniye: kalanSaniye),
         const SizedBox(height: 14),
         Text(
           'Şu ana kadar +${session.pointsEarned} puan',
@@ -282,14 +291,21 @@ class _NabizHalkasiState extends State<_NabizHalkasi> with SingleTickerProviderS
 }
 
 class _DurumSatiri extends StatelessWidget {
-  const _DurumSatiri({required this.status});
+  const _DurumSatiri({required this.status, this.kalanSaniye});
   final SessionStatus status;
+  final int? kalanSaniye;
 
   @override
   Widget build(BuildContext context) {
+    // Kapak açıkken kalan süreyi metnin içinde gösteriyoruz: kullanıcı
+    // kapağın kendiliğinden kapanacağını bilsin, boşuna beklemesin.
+    final acikMetin = kalanSaniye != null && kalanSaniye! > 0
+        ? 'Atığını at — $kalanSaniye sn'
+        : 'Kapak açık — atığını atabilirsin';
+
     final (metin, ikon) = switch (status) {
       SessionStatus.pending => ('Kapak açılıyor...', Icons.hourglass_top_rounded),
-      SessionStatus.lidOpen => ('Kapak açık — atığını atabilirsin', Icons.lock_open_rounded),
+      SessionStatus.lidOpen => (acikMetin, Icons.lock_open_rounded),
       SessionStatus.completed => ('Tamamlandı', Icons.check_circle_rounded),
     };
 
@@ -427,7 +443,7 @@ class _SimulatorPanel extends ConsumerWidget {
       child: Column(
         children: [
           const Text(
-            'DONANIM SİMÜLATÖRÜ · sadece geliştirme',
+            'DONANIM SİMÜLATÖRÜ · kapak otomatik, sen sadece at',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 10.5,
@@ -441,24 +457,13 @@ class _SimulatorPanel extends ConsumerWidget {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: [
+              // Kapağı açma/kapatma butonları KALDIRILDI: bunları artık
+              // LidAutomation otomatik yapıyor, tıpkı gerçek ESP32 gibi.
+              // Geriye tek insan hareketi kalıyor — atığı kutuya atmak.
               _SimButon(
-                etiket: 'Kapağı Aç',
-                aktif: session.status == SessionStatus.pending,
-                onTap: () => ref
-                    .read(updateSessionStatusProvider)
-                    .call(session.id, SessionStatus.lidOpen),
-              ),
-              _SimButon(
-                etiket: '+1 Adet',
+                etiket: 'Atık At (+1)',
                 aktif: session.status == SessionStatus.lidOpen,
                 onTap: () => ref.read(incrementDepositedCountProvider).call(session.id),
-              ),
-              _SimButon(
-                etiket: 'Bitir',
-                aktif: session.status == SessionStatus.lidOpen,
-                onTap: () => ref
-                    .read(updateSessionStatusProvider)
-                    .call(session.id, SessionStatus.completed),
               ),
             ],
           ),
