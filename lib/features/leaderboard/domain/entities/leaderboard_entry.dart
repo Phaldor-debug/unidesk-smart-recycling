@@ -12,6 +12,8 @@ class LeaderboardEntry {
   /// Ham ad soyad. Ekranda gösterilirken `gizliAd` kullanılır.
   final String displayName;
 
+  /// Bu ay KAZANILAN puan (harcanabilir bakiye değil) — ödül kullanmak
+  /// bu sayıyı düşürmez.
   final int points;
 
   /// 1'den başlayan sıra numarası.

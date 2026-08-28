@@ -16,7 +16,7 @@ class LeaderboardPage extends ConsumerWidget {
     final benimUid = ref.watch(authStateProvider).value?.uid;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sıralama')),
+      appBar: AppBar(title: const Text('Bu Ayın Sıralaması')),
       body: liste.when(
         data: (entries) {
           if (entries.isEmpty) {
@@ -32,10 +32,12 @@ class LeaderboardPage extends ConsumerWidget {
           }
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: entries.length,
+            // +1: en üstteki bilgi satırı için.
+            itemCount: entries.length + 1,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
-              final entry = entries[index];
+              if (index == 0) return const _BilgiSatiri();
+              final entry = entries[index - 1];
               return _LeaderboardTile(
                 entry: entry,
                 benMiyim: entry.uid == benimUid,
@@ -50,6 +52,38 @@ class LeaderboardPage extends ConsumerWidget {
             child: Text('Sıralama yüklenemedi:\n$error', textAlign: TextAlign.center),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Sıralamanın neye göre olduğunu açıklar — kullanıcı "ödül alırsam
+/// sıram düşer mi?" diye tereddüt etmesin.
+class _BilgiSatiri extends StatelessWidget {
+  const _BilgiSatiri();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Sıralama bu ay kazandığın puana göre. Ödül kullanmak sıranı düşürmez.',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

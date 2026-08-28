@@ -87,7 +87,7 @@ class ProfilePage extends ConsumerWidget {
                               icon: Icons.leaderboard_rounded,
                               renk: AppColors.green,
                               deger: benimSira != null ? '#$benimSira' : '—',
-                              etiket: 'Sıra',
+                              etiket: 'Aylık Sıra',
                             ),
                           ),
                           const SizedBox(width: 12),

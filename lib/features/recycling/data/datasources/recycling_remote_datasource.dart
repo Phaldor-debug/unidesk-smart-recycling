@@ -76,6 +76,7 @@ class RecyclingRemoteDataSource {
     // Aynı oturum için iki farklı yerden (ör. çift tıklama, iki cihaz)
     // aynı anda çağrılsa bile puan sadece bir kez eklenir.
     return _firestore.runTransaction((tx) async {
+      // Firestore transaction kuralı: TÜM okumalar yazmalardan önce olmalı.
       final sessionSnap = await tx.get(sessionRef);
       if (!sessionSnap.exists) return;
 
@@ -86,8 +87,32 @@ class RecyclingRemoteDataSource {
       final fresh = RecyclingSessionModel.fromSnapshot(sessionSnap);
       if (fresh.pointsClaimed) return; // Güvenlik kilidi: ikinci çağrı hiçbir şey yapmaz.
 
-      tx.update(userRef, {'points': FieldValue.increment(fresh.pointsEarned)});
+      final userSnap = await tx.get(userRef);
+      final kazanilan = fresh.pointsEarned;
+      final donem = suankiDonem();
+      final kayitliDonem = userSnap.data()?['monthlyPeriod'] as String?;
+
+      tx.update(userRef, {
+        // Harcanabilir bakiye: ödül alınca düşer.
+        'points': FieldValue.increment(kazanilan),
+        // Sıralama sayacı: SADECE artar, ödül harcaması bunu düşürmez.
+        // Böylece ödül kullanan kişi sıralamada geriye düşmez.
+        // Ay değiştiyse sıfırdan başlar (increment değil, doğrudan atama).
+        'monthlyPoints':
+            kayitliDonem == donem ? FieldValue.increment(kazanilan) : kazanilan,
+        'monthlyPeriod': donem,
+      });
       tx.update(sessionRef, {'pointsClaimed': true});
     });
   }
+}
+
+/// İçinde bulunulan ayın kimliği: "2026-08".
+///
+/// Cihaz saatinden üretiliyor — mevcut "istemciye güven" modeliyle
+/// tutarlı. Sunucu saatine taşımak, puan doğrulamasıyla birlikte
+/// Cloud Functions'a geçildiğinde yapılacak.
+String suankiDonem([DateTime? now]) {
+  final t = now ?? DateTime.now();
+  return '${t.year}-${t.month.toString().padLeft(2, '0')}';
 }

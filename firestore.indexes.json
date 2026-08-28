@@ -10,6 +10,15 @@
       ]
     },
     {
+      "//": "Sıralama tablosu: bu ayın kazananlarını puana göre sıralar (monthlyPeriod + monthlyPoints).",
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "monthlyPeriod", "order": "ASCENDING" },
+        { "fieldPath": "monthlyPoints", "order": "DESCENDING" }
+      ]
+    },
+    {
       "//": "Ana sayfa: kullanıcının yarıda kalmış oturumunu bulur (uid + status).",
       "collectionGroup": "sessions",
       "queryScope": "COLLECTION",
