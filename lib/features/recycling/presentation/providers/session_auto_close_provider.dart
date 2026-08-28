@@ -54,21 +54,17 @@ class SessionAutoClose extends Notifier<void> {
     _kapat(sessionId);
   }
 
-  /// Son kapatma hatası. Sessiz başarısızlık "neden puanım gelmedi"
-  /// sorusunu cevapsız bırakıyordu; ekranlar bunu okuyup bildirebilir.
-  Object? sonHata;
-
   Future<void> _kapat(String sessionId) async {
     if (_kapatiliyor.contains(sessionId)) return;
     _kapatiliyor.add(sessionId);
 
     final repository = ref.read(recyclingRepositoryProvider);
     try {
-      debugPrint('[oturum] kapatiliyor: $sessionId');
+      _log('kapatiliyor: $sessionId');
       final oturum = await repository.watchSession(sessionId).first;
       // Bu arada tamamlanmışsa dokunma.
       if (oturum.status == SessionStatus.completed) {
-        debugPrint('[oturum] zaten tamamlanmis: $sessionId');
+        _log('zaten tamamlanmis: $sessionId');
         return;
       }
 
@@ -77,19 +73,24 @@ class SessionAutoClose extends Notifier<void> {
       // puanı ekleyen dinleyici çalışmıyor. claimPoints zaten taze
       // veriyi okuyup tek seferlik davranıyor, iki kez yazma riski yok.
       await repository.claimPoints(oturum);
-      sonHata = null;
-      debugPrint('[oturum] kapatildi: $sessionId '
+      _log('kapatildi: $sessionId '
           '(${oturum.depositedCount} adet, ${oturum.pointsEarned} puan)');
     } catch (hata, iz) {
       // Oturum askıda kalır; kullanıcı ana sayfadaki "devam eden işlem"
       // uyarısından tekrar girip bitirebilir.
-      sonHata = hata;
-      debugPrint('[oturum] KAPATILAMADI ($sessionId): $hata');
-      debugPrint(iz.toString());
+      _log('KAPATILAMADI ($sessionId): $hata');
+      _log(iz.toString());
     } finally {
       _kapatiliyor.remove(sessionId);
     }
   }
+}
+
+/// Tanılama günlüğü — yalnızca geliştirme derlemesinde yazar.
+/// `debugPrint` release'de de çalıştığı için doğrudan kullanmıyoruz:
+/// yayınlanan uygulamada oturum kimlikleri konsola düşmesin.
+void _log(String mesaj) {
+  if (kDebugMode) debugPrint('[oturum] $mesaj');
 }
 
 final sessionAutoCloseProvider =
