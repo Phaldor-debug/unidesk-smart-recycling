@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/empty_state.dart';
 import '../../domain/entities/redemption.dart';
 import '../providers/rewards_providers.dart';
 
@@ -21,7 +22,16 @@ class MyCodesPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Kodlarım')),
       body: codes.when(
         data: (list) {
-          if (list.isEmpty) return const _EmptyState();
+          if (list.isEmpty) {
+            return const EmptyState(
+              icon: Icons.confirmation_number_outlined,
+              title: 'Kullanılmamış kodun yok',
+              message:
+                  'Ödüller sekmesinden puanını harcayarak yeni bir kod alabilirsin. '
+                  'Aldığın kodlar kullanılana kadar burada bekler.',
+              accent: AppColors.gold,
+            );
+          }
           return ListView.separated(
             padding: const EdgeInsets.all(20),
             itemCount: list.length,
@@ -35,40 +45,6 @@ class MyCodesPage extends ConsumerWidget {
             padding: const EdgeInsets.all(24),
             child: Text('Kodlar yüklenemedi:\n$error', textAlign: TextAlign.center),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.confirmation_number_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Kullanılmamış kodun yok',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Ödüller ekranından puanını harcayarak\nyeni bir kod alabilirsin.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ],
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/leaderboard_entry.dart';
 import '../providers/leaderboard_providers.dart';
@@ -20,14 +21,12 @@ class LeaderboardPage extends ConsumerWidget {
       body: liste.when(
         data: (entries) {
           if (entries.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text(
-                  'Sıralama henüz oluşmadı.\nAtık atan ilk kişi sen ol!',
-                  textAlign: TextAlign.center,
-                ),
-              ),
+            return const EmptyState(
+              icon: Icons.emoji_events_outlined,
+              title: 'Bu ay sıralama boş',
+              message:
+                  'Bu ay henüz kimse atık atmadı. İlk atığını atarsan '
+                  'sıralamanın başında sen olursun.',
             );
           }
           return ListView.separated(

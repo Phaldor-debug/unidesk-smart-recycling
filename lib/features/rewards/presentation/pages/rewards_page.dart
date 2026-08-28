@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/big_action_card.dart';
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../wallet/presentation/providers/wallet_providers.dart';
 import '../../../wallet/presentation/widgets/points_balance_card.dart';
 import '../providers/redeem_controller.dart';
@@ -90,15 +91,18 @@ class RewardsPage extends ConsumerWidget {
               data: (list) {
                 if (list.isEmpty) {
                   // Firestore'daki `rewards` koleksiyonu boş — henüz hiç
-                  // ödül eklenmemiş. Firebase Console'dan eklenebilir.
+                  // ödül tanımlanmamış. Öğrenciye teknik ayrıntı değil,
+                  // durumu anlatan sade bir mesaj gösteriyoruz.
                   return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Text(
-                      'Henüz ödül eklenmedi.\n'
-                      'Firebase Console → Firestore → "rewards" koleksiyonuna\n'
-                      'title (metin) + costPoints (sayı) + active (true) alanlarıyla\n'
-                      'bir belge ekleyebilirsin.',
-                      textAlign: TextAlign.center,
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: EmptyState(
+                      icon: Icons.card_giftcard_outlined,
+                      title: 'Şu an ödül yok',
+                      message:
+                          'Henüz tanımlanmış bir ödül bulunmuyor. '
+                          'Puanların birikmeye devam ediyor — ödüller '
+                          'eklendiğinde burada görünecek.',
+                      accent: AppColors.gold,
                     ),
                   );
                 }
