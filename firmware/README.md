@@ -1,70 +1,72 @@
 # Ünidesk ESP32 Firmware
 
-Bu klasördeki kod, fiziksel donanım gelmeden **Wokwi** (tarayıcı tabanlı ESP32
-simülatörü) üzerinde test edilmek üzere yazıldı. Gerçek Firebase'e bağlanır —
-yani burada test ettiğin akış, gerçek donanımda BİREBİR aynı çalışır.
+This firmware was written to be tested on **Wokwi** (a browser-based ESP32 simulator)
+before the physical hardware arrived. It talks to the real Firebase backend, so a flow
+tested here behaves exactly the same on the real board.
 
-## Wokwi'de sanal test (kurulum gerektirmez, tarayıcıdan)
+## Configuration
 
-1. [wokwi.com](https://wokwi.com) → ücretsiz hesap oluştur / giriş yap
-2. **"New Project" → "ESP32"** seç
-3. Sol taraftaki `sketch.ino` sekmesindeki örnek kodu SİL, bu klasördeki
-   **`unidesk_bin.ino`** dosyasının içeriğini yapıştır
-4. Üstte **"diagram.json"** sekmesine geç, içeriğini SİL, bu klasördeki
-   **`diagram.json`** dosyasının içeriğini yapıştır
-5. Sol üstte **"Library Manager"** (kitap ikonu) → şu iki kütüphaneyi ekle:
-   - `Firebase ESP Client` (yazar: mobizt)
-   - `ESP32Servo`
-6. Yeşil **▶ (Play/Start Simulation)** butonuna bas
+At the top of [`unidesk_bin/unidesk_bin.ino`](unidesk_bin/unidesk_bin.ino):
 
-## Neyi görmelisin
-
-1. Alttaki **Serial Monitor**'da: `WiFi baglandi`, `Firebase'e baglaniliyor` yazıları
-2. Flutter uygulamasında (Chrome veya telefon) **Atık At → Plastik** seçip
-   oturum başlat
-3. Birkaç saniye içinde Wokwi'deki **Serial Monitor**'da `Yeni oturum: ...`
-   yazısı ve **Plastik servosunun döndüğünü** görmelisin
-4. Wokwi'deki **Plastik IR** butonuna birkaç kez tıkla — her tıklama bir
-   "atık algılandı" demek
-5. Uygulamadaki `ActiveSessionPage`'de sayacın **gerçek zamanlı arttığını**
-   gör (artık simülatör panelinden değil, gerçek — sanal da olsa — donanımdan geliyor)
-6. ~5 saniye butona basmazsan servo kapanır, oturum "completed" olur,
-   uygulamada puan eklenir
-
-## Pin haritası (gerçek donanıma montajda da AYNI kullanılacak)
-
-| Parça | ESP32 Pin |
+| Define | Purpose |
 |---|---|
-| Servo — Plastik | GPIO 13 |
-| Servo — Kağıt | GPIO 12 |
-| Servo — Cam | GPIO 14 |
-| IR Sensör — Plastik | GPIO 27 |
-| IR Sensör — Kağıt | GPIO 26 |
-| IR Sensör — Cam | GPIO 25 |
+| `WIFI_SSID` / `WIFI_PASSWORD` | Wi-Fi network (`Wokwi-GUEST` with an empty password in the simulator) |
+| `API_KEY` | Your Firebase project's Web API key |
+| `DATABASE_URL` | Your Realtime Database URL |
+| `BIN_ID` | Which bin this board is (`demo-bin-01`) |
 
-## Neden buton, IR sensör değil?
+## Testing in Wokwi (no installation, runs in the browser)
 
-Wokwi'nin hazır parça kütüphanesinde gerçek bir "IR engel algılama sensörü"
-yok. Buton ile IR sensör, yazılım açısından **birebir aynı davranır** —
-ikisi de bir pini LOW/HIGH yapar. Gerçek donanıma geçince koda HİÇ
-dokunmana gerek yok, sadece butonun yerini gerçek sensör alacak.
+1. Sign in at [wokwi.com](https://wokwi.com)
+2. Choose **New Project → ESP32**
+3. Replace the contents of the `sketch.ino` tab with **`unidesk_bin.ino`**
+4. Replace the contents of the `diagram.json` tab with this folder's **`diagram.json`**
+5. Open **Library Manager** and add:
+   - `Firebase ESP Client` (by mobizt)
+   - `ESP32Servo`
+6. Press the green **▶ Start Simulation** button
 
-## Gerçek donanıma yüklerken (45 gün sonra, Alanya'da)
+## What you should see
 
-1. [Arduino IDE](https://www.arduino.cc/en/software) kur
-2. **File → Preferences** → "Additional Boards Manager URLs" kısmına ekle:
+1. The **Serial Monitor** reports the Wi-Fi and Firebase connections
+2. In the Flutter app, start a session with **plastic** as the waste type
+3. Within a few seconds the Serial Monitor logs the new session and the
+   **plastic servo rotates**
+4. Click the **plastic IR** button in Wokwi a few times — each click is one detected item
+5. The counter on the app's active session screen **updates in real time**
+6. After ~5 seconds without a click the servo closes, the session becomes
+   `completed` and the app credits the points
+
+## Pin map (same on the real hardware)
+
+| Part | ESP32 pin |
+|---|---|
+| Servo — plastic | GPIO 13 |
+| Servo — paper | GPIO 12 |
+| Servo — glass | GPIO 14 |
+| IR sensor — plastic | GPIO 27 |
+| IR sensor — paper | GPIO 26 |
+| IR sensor — glass | GPIO 25 |
+
+### Why buttons instead of IR sensors?
+
+Wokwi has no IR obstacle sensor part. From the software's point of view a push button
+and an IR sensor behave identically — both pull a pin LOW/HIGH — so the code needs no
+change on the real hardware; the button is simply replaced by the sensor.
+
+## Flashing a real board
+
+1. Install the [Arduino IDE](https://www.arduino.cc/en/software)
+2. **File → Preferences** → add to "Additional Boards Manager URLs":
    `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
-3. **Tools → Board → Boards Manager** → `esp32` ara, kur
-4. **Tools → Manage Libraries** → `Firebase ESP Client` (mobizt) ve
-   `ESP32Servo` kütüphanelerini kur
-5. `unidesk_bin.ino`'yu aç, dosyanın en üstündeki `WIFI_SSID` /
-   `WIFI_PASSWORD`'ü gerçek WiFi bilgileriyle değiştir
-6. ESP32'yi USB ile bağla, doğru portu seç, **Upload**
+3. **Tools → Board → Boards Manager** → search for `esp32` and install it
+4. **Tools → Manage Libraries** → install `Firebase ESP Client` (mobizt) and `ESP32Servo`
+5. Open `unidesk_bin.ino` and set the values from [Configuration](#configuration)
+6. Connect the ESP32 over USB, select the port and press **Upload**
 
-## Bilinçli sınırlamalar (şimdilik)
+## Known limitations
 
-- Tek kutu (`BIN_ID = "demo-bin-01"`) destekleniyor — çoklu kutu ileride
-  eklenebilir (binId'yi sabit değil, kutunun kendi ayarından okumak yeterli)
-- Anonim Firebase Auth kullanılıyor — herhangi bir cihaz kimliği doğrulaması
-  yok, bu bir prototip için kabul edilebilir ama üretimde cihaza özel kimlik
-  düşünülebilir
+- Only a single bin (`BIN_ID`) is supported; multiple bins would only require reading
+  the ID from per-device configuration instead of a constant.
+- The board uses anonymous Firebase Auth with no device identity. That is fine for a
+  prototype; production would need per-device credentials.
